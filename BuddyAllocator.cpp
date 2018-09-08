@@ -30,4 +30,3 @@ int BuddyAllocator::free(char* _a) {
 void BuddyAllocator::debug (){
   
 }
-
