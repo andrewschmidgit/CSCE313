@@ -13,77 +13,159 @@
 #ifndef _BuddyAllocator_h_ // include file only once
 #define _BuddyAllocator_h_
 #include <iostream>
+#include <algorithm>
+#include <map>
 using namespace std;
 typedef unsigned int uint;
 
 /* declare types as you need */
 
-class Block
+class BlockHeader
 {
-    // decide what goes here
-    // hint: obviously block size will go here
-    uint _size;
-    char* _data;
   public:
-    // LL Business
-    Block* next;
+    // Linked List Requirements
+    BlockHeader *next;
+    uint Size;
+    bool Free;
 
     // Structors
-    Block(uint size, char* data = nullptr): _size(size), _data(data)
-
-    // Accessors
-    uint GetSize() { return _size; }
-
-    // Methods
-    bool IsFree() { return data == nullptr; }
+    BlockHeader(uint size) : Size(size), Free(true) {}
 };
 
 class LinkedList
 {
-    // this is a special linked list that is made out of Blocks.
   private:
-    Block *head; // you need a head of the list
+    BlockHeader *_head; // you need a head of the list
+    uint _size;
+
   public:
-    void insert(Block *b)
-    { // adds a block to the list
-        Block* cur = head;
-        if(cur != nullptr) {}
-            while(cur->next != nullptr) 
-                cur = cur->next;
-        cur->next = b;
+    LinkedList(uint size) : _size(size) {}
+
+    uint GetSize() { return _size; }
+
+    BlockHeader *GetHead()
+    {
+        return _head;
     }
 
-    void remove(Block *b)
-    { // removes a block from the list
+    // adds a block to the list
+    void Insert(BlockHeader *b)
+    {
+        BlockHeader *cur = _head;
+        b->next = cur;
+        _head = b;
+    }
+
+    void Remove(BlockHeader *b)
+    {
+        if(_head == b) {
+            _head = _head->next;
+            return;
+        }
+        BlockHeader *cur = _head;
+        while (cur != nullptr)
+        {
+            if (cur->next == b)
+            {
+                // Tie adjacent pointers together
+                cur->next = cur->next->next;
+                break;
+            }
+            else
+            {
+                cur = cur->next;
+            }
+        }
+    }
+
+    int Length()
+    {
+        BlockHeader *cur = _head;
+        int length = 0;
+        while (cur != nullptr)
+        {
+            length++;
+            cur = cur->next;
+        }
+        return length;
     }
 };
 
 class BuddyAllocator
 {
   private:
-    /* declare member variables as necessary */
-
-  private:
     /* private function you are required to implement
 	 this will allow you and us to do unit test */
+    uint _blockSize;
+    uint _memorySize;
+    char *_start;
+    LinkedList** _freeList;
 
-    char *getbuddy(char *addr);
+    char *getbuddy(char *addr)
+    {
+        uint size = ((BlockHeader)*addr).Size;
+        uintptr_t zeroedAddress = (uintptr_t)addr - (uintptr_t)_start;
+        uintptr_t buddyAddress = zeroedAddress ^ (uintptr_t)size + (uintptr_t)_start;
+        return (char *)buddyAddress;
+    }
     // given a block address, this function returns the address of its buddy
 
-    bool isvalid(char *addr);
+    bool isvalid(char *addr)
+    {
+        try
+        {
+            uint size = ((BlockHeader *)addr)->Size;
+
+            for (uint blockSize = _blockSize; blockSize <= _memorySize; blockSize *= 2)
+            {
+                if (blockSize == size)
+                    return true;
+            }
+
+            return false;
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
     // Is the memory starting at addr is a valid block
     // This is used to verify whether the a computed block address is actually correct
 
-    bool arebuddies(char *block1, char *block2);
+    bool arebuddies(char *block1, char *block2)
+    {
+        return getbuddy(block1) == block2;
+    }
     // checks whether the two blocks are buddies are not
 
-    char *merge(char *block1, char *block2);
+    char *merge(char *block1, char *block2)
+    {
+        intptr_t address1 = (intptr_t)block1;
+        intptr_t address2 = (intptr_t)block2;
+        intptr_t startAddress = (intptr_t)_start;
+        if (address2 - address1 - startAddress < 0)
+            swap(block1, block2);
+        ((BlockHeader*)block1)->Size *= 2;
+        return block1;
+    }
     // this function merges the two blocks returns the beginning address of the merged block
     // note that either block1 can be to the left of block2, or the other way around
 
-    char *split(char *block);
+    char *split(char *block)
+    {
+        ((BlockHeader*)block)->Free = false;
+
+    }
     // splits the given block by putting a new header halfway through the block
     // also, the original header needs to be corrected
+
+    uint _getNextPowerOfTwo(uint value)
+    {
+        uint power = 1;
+        while (power < value)
+            power *= 2;
+        return power;
+    }
 
   public:
     BuddyAllocator(uint _basic_block_size, uint _total_memory_length);
@@ -108,17 +190,6 @@ class BuddyAllocator
 	   using ’my_malloc’. Returns 0 if everything ok. */
 
     void debug();
-    /* Mainly used for debugging purposes and running short test cases */
-    /* This function should print how many free blocks of each size belong to the allocator
-	at that point. The output format should be the following (assuming basic block size = 128 bytes):
-
-	128: 5
-	256: 0
-	512: 3
-	1024: 0
-	....
-	....
-	 which means that at point, the allocator has 5 128 byte blocks, 3 512 byte blocks and so on.*/
 };
 
 #endif

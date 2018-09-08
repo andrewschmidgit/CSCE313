@@ -1,17 +1,49 @@
+#include "unistd.h"
 #include "Ackerman.h"
 #include "BuddyAllocator.h"
 
-int main(int argc, char ** argv) {
+int main(int argc, char **argv)
+{
+    uint blockSize = 128;
+    uint memorySize;
 
-  int basic_block_size = 128, memory_length = 512 * 1024;
+    int argDelimiter;
 
-  // create memory manager
-  BuddyAllocator * allocator = new BuddyAllocator(basic_block_size, memory_length);
+    while ((argDelimiter = getopt(argc, argv, "b:s:")) != -1)
+    {
+        switch (argDelimiter)
+        {
+            case 'b':
+            {
+                auto in = strtol(optarg, nullptr, 0);
+                if (in > blockSize)
+                    blockSize = in;
+                break;
+            }
+            case 's':
+            {
+                auto in = strtol(optarg, nullptr, 0);
+                memorySize = in;
+                break;
+            }
+            case '?':
+                if (optopt == 'b' || optopt == 's')
+                    cout << "-" << optopt << " requires a value" << endl;
+                exit(1);
+                break;
+            default:
+                break;
+        }
+    }
+    
+    // create memory manager
+    BuddyAllocator *allocator = new BuddyAllocator(blockSize, memorySize);
+    allocator->debug();
+    cout << "Try me" << endl;
+    // test memory manager
+    Ackerman *am = new Ackerman();
+    //am->test(allocator); // this is the full-fledged test.
 
-  // test memory manager
-  Ackerman* am = new Ackerman ();
-  am->test(allocator); // this is the full-fledged test. 
-  
-  // destroy memory manager
-  delete allocator;
+    // destroy memory manager
+    delete allocator;
 }
