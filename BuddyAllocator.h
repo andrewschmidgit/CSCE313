@@ -14,7 +14,8 @@
 #define _BuddyAllocator_h_
 #include <iostream>
 #include <algorithm>
-#include <map>
+#include <vector>
+#include <math.h>
 using namespace std;
 typedef unsigned int uint;
 
@@ -99,7 +100,7 @@ class BuddyAllocator
     uint _blockSize;
     uint _memorySize;
     char *_start;
-    LinkedList** _freeList;
+    vector<LinkedList> _freeList;
 
     char *getbuddy(char *addr)
     {
@@ -140,21 +141,41 @@ class BuddyAllocator
 
     char *merge(char *block1, char *block2)
     {
-        intptr_t address1 = (intptr_t)block1;
-        intptr_t address2 = (intptr_t)block2;
+        BlockHeader* b1 = (BlockHeader*)block1;
+        BlockHeader* b2 = (BlockHeader*)block2;
         intptr_t startAddress = (intptr_t)_start;
-        if (address2 - address1 - startAddress < 0)
-            swap(block1, block2);
-        ((BlockHeader*)block1)->Size *= 2;
-        return block1;
+        // TODO: Modify Freelist
+        while(b1->Free && b2->Free && b1->Size == b2->Size) {
+            if ((intptr_t)b2 - (intptr_t)b1 - startAddress < 0)
+                swap(b1, b2);
+            
+            int removeIndex = log2(b2->Size / _blockSize);
+            _freeList.at(removeIndex).Remove(b1);
+            _freeList.at(removeIndex).Remove(b2);
+            _freeList.at(removeIndex - 1).Insert(b1);
+
+            b1->Size *= 2;
+            b2 = (BlockHeader*)getbuddy((char*)b1);
+        }
+
+        return (char*)b1;
     }
     // this function merges the two blocks returns the beginning address of the merged block
     // note that either block1 can be to the left of block2, or the other way around
 
     char *split(char *block)
     {
-        ((BlockHeader*)block)->Free = false;
+        BlockHeader* blockAddress = (BlockHeader*)block;
 
+        if(blockAddress->Size == _blockSize) return block;
+        blockAddress->Size /= 2;
+        
+        int removeIndex = log2(blockAddress->Size / _blockSize);
+        _freeList.at(removeIndex).Remove(blockAddress);
+        _freeList.at(removeIndex + 1).Insert(blockAddress);
+        _freeList.at(removeIndex + 1).Insert((BlockHeader*)getbuddy((char*)blockAddress));
+
+        return block;
     }
     // splits the given block by putting a new header halfway through the block
     // also, the original header needs to be corrected

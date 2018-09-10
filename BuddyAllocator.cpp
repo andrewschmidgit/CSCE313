@@ -11,16 +11,13 @@ BuddyAllocator::BuddyAllocator(uint blockSize, uint memorySize)
     _memorySize = _getNextPowerOfTwo(memorySize);
     
     // Setting up each list for each level
-    int count = 0;
-    for(int i = _blockSize; i <= _memorySize; i *= 2, count++);
-    
-    _freeList = (LinkedList**)malloc(count * sizeof(LinkedList*));
-    
-    // count - i - 1 so I can get the largest freelist on top
-    for(int i = 0; i < count; i++)
-        _freeList[i] = new LinkedList(_blockSize << count - i - 1);
-    
-    BlockHeader* initialBlock = (BlockHeader*)malloc(_memorySize + sizeof(BlockHeader));
+    for(int i = log2(_memorySize / _blockSize); i >= 0; i--)
+        _freeList.push_back(LinkedList(_blockSize << i));
+
+    // Creating first block of memory
+    BlockHeader* init = (BlockHeader*)malloc(_memorySize);
+    init->Size = _memorySize;
+    _freeList[0].Insert(init);
 }
 
 BuddyAllocator::~BuddyAllocator()
