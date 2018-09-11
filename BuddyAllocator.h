@@ -36,15 +36,15 @@ class BlockHeader
 class LinkedList
 {
   private:
-    BlockHeader *_head; // you need a head of the list
+    BlockHeader* _head; // you need a head of the list
     uint _size;
 
   public:
-    LinkedList(uint size) : _size(size) {}
+    LinkedList(uint size) : _size(size), _head(nullptr) {}
 
     uint GetSize() { return _size; }
 
-    BlockHeader *GetHead()
+    BlockHeader* GetHead()
     {
         return _head;
     }
@@ -52,13 +52,14 @@ class LinkedList
     // adds a block to the list
     void Insert(BlockHeader *b)
     {
-        BlockHeader *cur = _head;
-        b->next = cur;
+        b->next = _head;
         _head = b;
     }
 
     void Remove(BlockHeader *b)
     {
+        if(b == nullptr) return;
+
         if(_head == b) {
             _head = _head->next;
             return;
@@ -99,81 +100,53 @@ class BuddyAllocator
 	 this will allow you and us to do unit test */
     uint _blockSize;
     uint _memorySize;
-    char *_start;
+    BlockHeader* _start;
     vector<LinkedList> _freeList;
 
-    char *getbuddy(char *addr)
+    BlockHeader* getbuddy(BlockHeader* block)
     {
-        uint size = ((BlockHeader)*addr).Size;
-        uintptr_t zeroedAddress = (uintptr_t)addr - (uintptr_t)_start;
-        uintptr_t buddyAddress = zeroedAddress ^ (uintptr_t)size + (uintptr_t)_start;
-        return (char *)buddyAddress;
+        uint size = block->Size;
+        intptr_t zeroedAddress = (intptr_t)block - (intptr_t)_start;
+        intptr_t buddyAddress = zeroedAddress ^ (intptr_t)size + (intptr_t)_start;
+        cout << "Buddy Size: " << ((BlockHeader*)buddyAddress)->Size << endl;
+        return (BlockHeader*)buddyAddress;
     }
     // given a block address, this function returns the address of its buddy
 
-    bool isvalid(char *addr)
-    {
-        try
-        {
-            uint size = ((BlockHeader *)addr)->Size;
-
-            for (uint blockSize = _blockSize; blockSize <= _memorySize; blockSize *= 2)
-            {
-                if (blockSize == size)
-                    return true;
-            }
-
-            return false;
-        }
-        catch (...)
-        {
-            return false;
-        }
-    }
+    bool isvalid(BlockHeader* block) { return block != nullptr && block->Size % _blockSize == 0; }
     // Is the memory starting at addr is a valid block
     // This is used to verify whether the a computed block address is actually correct
 
-    bool arebuddies(char *block1, char *block2)
+    bool arebuddies(BlockHeader* block1, BlockHeader* block2)
     {
         return getbuddy(block1) == block2;
     }
     // checks whether the two blocks are buddies are not
 
-    char *merge(char *block1, char *block2)
+    BlockHeader* merge(BlockHeader* block1, BlockHeader* block2)
     {
-        BlockHeader* b1 = (BlockHeader*)block1;
-        BlockHeader* b2 = (BlockHeader*)block2;
-        intptr_t startAddress = (intptr_t)_start;
-        // TODO: Modify Freelist
-        while(b1->Free && b2->Free && b1->Size == b2->Size) {
-            if ((intptr_t)b2 - (intptr_t)b1 - startAddress < 0)
-                swap(b1, b2);
-            
-            int removeIndex = log2(b2->Size / _blockSize);
-            _freeList.at(removeIndex).Remove(b1);
-            _freeList.at(removeIndex).Remove(b2);
-            _freeList.at(removeIndex - 1).Insert(b1);
+        block1->Size *= 2;
 
-            b1->Size *= 2;
-            b2 = (BlockHeader*)getbuddy((char*)b1);
-        }
+        int removeIndex = log2(block2->Size / _blockSize);
+        _freeList.at(removeIndex).Remove(block1);
+        _freeList.at(removeIndex).Remove(block2);
+        _freeList.at(removeIndex + 1).Insert(block1);
 
-        return (char*)b1;
+        return block1;
     }
     // this function merges the two blocks returns the beginning address of the merged block
     // note that either block1 can be to the left of block2, or the other way around
 
-    char *split(char *block)
+    BlockHeader* split(BlockHeader* block)
     {
-        BlockHeader* blockAddress = (BlockHeader*)block;
-
-        if(blockAddress->Size == _blockSize) return block;
-        blockAddress->Size /= 2;
+        int removeIndex = log2(block->Size / _blockSize);
+        block->Size /= 2;
+        BlockHeader* blockBuddy = getbuddy(block);
+        blockBuddy->Size = block->Size;
         
-        int removeIndex = log2(blockAddress->Size / _blockSize);
-        _freeList.at(removeIndex).Remove(blockAddress);
-        _freeList.at(removeIndex + 1).Insert(blockAddress);
-        _freeList.at(removeIndex + 1).Insert((BlockHeader*)getbuddy((char*)blockAddress));
+        _freeList.at(removeIndex).Remove(block);
+        _freeList.at(removeIndex - 1).Insert(block);
+        _freeList.at(removeIndex - 1).Insert(blockBuddy);
 
         return block;
     }

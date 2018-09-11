@@ -8,87 +8,81 @@ using namespace std;
 BuddyAllocator::BuddyAllocator(uint blockSize, uint memorySize)
 {
     _blockSize = _getNextPowerOfTwo(blockSize + sizeof(BlockHeader));
-    _memorySize = _getNextPowerOfTwo(memorySize);
+    _memorySize = _getNextPowerOfTwo(memorySize + sizeof(BlockHeader));
     
     // Setting up each list for each level
-    for(int i = log2(_memorySize / _blockSize); i >= 0; i--)
+    for(int i = 0; i <= log2(_memorySize / _blockSize); i++)
         _freeList.push_back(LinkedList(_blockSize << i));
-
+    
     // Creating first block of memory
-    BlockHeader* init = (BlockHeader*)malloc(_memorySize);
-    init->Size = _memorySize;
-    _freeList[0].Insert(init);
+    _start = (BlockHeader*)malloc(_memorySize);
+    _start->Size = _memorySize;
+    _freeList.back().Insert(_start);
 }
 
 BuddyAllocator::~BuddyAllocator()
 {
+    _start->Size = _memorySize;
+    delete _start;
 }
 
-char *BuddyAllocator::alloc(uint _length)
+char *BuddyAllocator::alloc(uint length)
 {
-    /*  This preliminary implementation simply 
-        hands the call over the the C standard library! 
-        Of course this needs to be replaced by your implementation.
-    */
-    return new char[_length];
+    uint requestedSize = _getNextPowerOfTwo(length + sizeof(BlockHeader));
+    if(requestedSize < _blockSize) requestedSize = _blockSize;
+    BlockHeader* block = nullptr;
+    for(int i = log2(requestedSize / _blockSize); i < _freeList.size(); i++) {
+        if(isvalid(_freeList.at(i).GetHead())) {
+            block = _freeList.at(i).GetHead();
+            break;
+        }
+    }
+
+    if(block == nullptr) return (char*)block;
+    while(block->Size != requestedSize)
+        block = split(block);
+
+    block->Free = false;
+    // +1 to move over one BlockHeader
+    return (char*)(block + 1);
 }
 
 int BuddyAllocator::free(char *_a)
 {
-    /* Same here! */
-    delete _a;
+    // -1 to move over one BlockHeader
+    BlockHeader* block = (BlockHeader*)(_a - sizeof(BlockHeader));
+    if(isvalid(block) == false) {
+        cout << "!!!! There was a major problem !!!!" << endl;
+        return 1;
+    }
+    
+    block->Free = true;
+    BlockHeader* blockBuddy = getbuddy(block);
+
+    intptr_t startAddress = (intptr_t)_start;
+    while(isvalid(blockBuddy) && block->Free && blockBuddy->Free)
+    {
+        if ((intptr_t)block - (intptr_t)blockBuddy - startAddress < 0)
+        {
+            BlockHeader* temp = block;
+            block = blockBuddy;
+            blockBuddy = temp;
+        }
+        block = merge(block, blockBuddy);
+        blockBuddy = getbuddy(block);
+    }
+
     return 0;
 }
 
 void BuddyAllocator::debug()
 {
-    cout << "\t\t\t\t\t\t\t\t\t\t\tDEBUG_MODE_ACTIVE = true;" << endl;
-    cout << "Block Size: " << _blockSize << endl;
-    cout << "Memory Size: " << _memorySize << endl;
+    cout << "=====================================================================" << endl;
+    cout << "Block Size: " << _blockSize;
+    cout << "\t \tMemory Size: " << _memorySize;
 
-    cout << "Size of BlockHeader: " << sizeof(BlockHeader) << endl;
-    // // Inserting
-    // int freeListLength = 0;
-    
-    // for(int i = _blockSize; i <= _memorySize; i *= 2, freeListLength++);
-    
-    // cout << "Free list length: " << freeListLength << endl;
-
-    // for(int i = 0; i < freeListLength; i++) {
-    //     cout << "Iteration: " << i << endl;
-    //     uint size = _freeList[i]->GetSize();
-        
-    //     for(int j = -3; j < i; j++)
-    //     {
-    //         _freeList[i]->Insert(new BlockHeader(size));
-    //     }
-    // }
-    // cout << "Static list of lengths:" << endl;
-    // for(int i = 0; i < freeListLength; i++) {
-    //     cout << _freeList[i]->GetSize() << ": " << _freeList[i]->Length() << endl;
-    // }
-
-    // // TESTING: LinkedList.Remove()
-    // for(int i = 0; i < freeListLength; i++) {
-    //     BlockHeader* cur = _freeList[i]->GetHead();
-    //     while(cur != nullptr) {
-    //         _freeList[i]->Remove(cur);
-    //         cur = cur->next;
-    //     }
-    // }
-    
-    // cout << "Static list of lengths: " << endl;
-    // for(int i = 0; i < freeListLength; i++) {
-    //     cout << _freeList[i]->GetSize() << ": " << _freeList[i]->Length() << endl;
-    // }
-    
-    // // TESTING: BuddyAllocator.isvalid()
-    // cout << "Testing isvalid " << endl;
-    // cout << "Should be true:  " << isvalid((char*)(new BlockHeader(128))) << endl;
-    // cout << "Should be false: " << isvalid(new char) << endl;
-
-    // TESTING: BuddyAllocator.merge()
-
+    cout << "\t \tSize of BlockHeader: " << sizeof(BlockHeader);
+    cout << "\t \tStarting Address: " << _start << endl;
 
     cout << endl;
 }

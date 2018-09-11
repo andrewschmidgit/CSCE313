@@ -5,7 +5,7 @@
 int main(int argc, char **argv)
 {
     uint blockSize = 128;
-    uint memorySize;
+    uint memorySize = 1024 * 512;
 
     int argDelimiter;
 
@@ -38,12 +38,13 @@ int main(int argc, char **argv)
     
     // create memory manager
     BuddyAllocator *allocator = new BuddyAllocator(blockSize, memorySize);
+
     allocator->debug();
-    cout << "Try me" << endl;
     // test memory manager
     Ackerman *am = new Ackerman();
-    //am->test(allocator); // this is the full-fledged test.
+    am->test(allocator); // this is the full-fledged test.
 
     // destroy memory manager
     delete allocator;
+    return 0;
 }
