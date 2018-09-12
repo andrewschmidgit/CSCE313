@@ -71,7 +71,7 @@ class LinkedList
             {
                 // Tie adjacent pointers together
                 cur->next = cur->next->next;
-                break;
+                return;
             }
             else
             {
@@ -108,7 +108,6 @@ class BuddyAllocator
         uint size = block->Size;
         intptr_t zeroedAddress = (intptr_t)block - (intptr_t)_start;
         intptr_t buddyAddress = zeroedAddress ^ (intptr_t)size + (intptr_t)_start;
-        cout << "Buddy Size: " << ((BlockHeader*)buddyAddress)->Size << endl;
         return (BlockHeader*)buddyAddress;
     }
     // given a block address, this function returns the address of its buddy
@@ -126,12 +125,6 @@ class BuddyAllocator
     BlockHeader* merge(BlockHeader* block1, BlockHeader* block2)
     {
         block1->Size *= 2;
-
-        int removeIndex = log2(block2->Size / _blockSize);
-        _freeList.at(removeIndex).Remove(block1);
-        _freeList.at(removeIndex).Remove(block2);
-        _freeList.at(removeIndex + 1).Insert(block1);
-
         return block1;
     }
     // this function merges the two blocks returns the beginning address of the merged block
@@ -143,10 +136,6 @@ class BuddyAllocator
         block->Size /= 2;
         BlockHeader* blockBuddy = getbuddy(block);
         blockBuddy->Size = block->Size;
-        
-        _freeList.at(removeIndex).Remove(block);
-        _freeList.at(removeIndex - 1).Insert(block);
-        _freeList.at(removeIndex - 1).Insert(blockBuddy);
 
         return block;
     }
@@ -159,6 +148,21 @@ class BuddyAllocator
         while (power < value)
             power *= 2;
         return power;
+    }
+
+    void addToFreeList(BlockHeader* block) {
+        for(auto& list: _freeList)
+            if(block->Size == list.GetSize()) {
+                list.Insert(block);
+                break;
+            }
+    }
+    void removeFromFreeList(BlockHeader* block) {
+        for(auto& list: _freeList)
+            if(block->Size == list.GetSize()) {
+                list.Remove(block);
+                break;
+            }
     }
 
   public:

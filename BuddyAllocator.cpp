@@ -31,16 +31,20 @@ char *BuddyAllocator::alloc(uint length)
     uint requestedSize = _getNextPowerOfTwo(length + sizeof(BlockHeader));
     if(requestedSize < _blockSize) requestedSize = _blockSize;
     BlockHeader* block = nullptr;
-    for(int i = log2(requestedSize / _blockSize); i < _freeList.size(); i++) {
-        if(isvalid(_freeList.at(i).GetHead())) {
-            block = _freeList.at(i).GetHead();
+    for(int i = log2(requestedSize / _blockSize); i < _freeList.size(); i++)
+        if(isvalid(_freeList[i].GetHead())) {
+            block = _freeList[i].GetHead();
             break;
         }
-    }
 
     if(block == nullptr) return (char*)block;
-    while(block->Size != requestedSize)
+    while(block->Size != requestedSize) {
+        cout << "{blockSize, requestedSize}: {" << block->Size << "," << requestedSize << "} -> ";
+        removeFromFreeList(block);
         block = split(block);
+        addToFreeList(getbuddy(block));
+        cout << "{" << block->Size << "," << requestedSize << "}" << endl;
+    }
 
     block->Free = false;
     // +1 to move over one BlockHeader
@@ -50,27 +54,24 @@ char *BuddyAllocator::alloc(uint length)
 int BuddyAllocator::free(char *_a)
 {
     // -1 to move over one BlockHeader
-    BlockHeader* block = (BlockHeader*)(_a - sizeof(BlockHeader));
-    if(isvalid(block) == false) {
-        cout << "!!!! There was a major problem !!!!" << endl;
-        return 1;
-    }
+    BlockHeader* block = ((BlockHeader*)_a) - 1;
+    if(isvalid(block) == false) return 1;
     
     block->Free = true;
-    BlockHeader* blockBuddy = getbuddy(block);
+    BlockHeader* buddy = getbuddy(block);
 
-    intptr_t startAddress = (intptr_t)_start;
-    while(isvalid(blockBuddy) && block->Free && blockBuddy->Free)
+    while(isvalid(buddy) && block->Free && buddy->Free)
     {
-        if ((intptr_t)block - (intptr_t)blockBuddy - startAddress < 0)
-        {
+        if (buddy > block) {
             BlockHeader* temp = block;
-            block = blockBuddy;
-            blockBuddy = temp;
+            block = buddy;
+            buddy = block;
         }
-        block = merge(block, blockBuddy);
-        blockBuddy = getbuddy(block);
+        block = merge(block, buddy);
+        buddy = getbuddy(block);
     }
+
+    addToFreeList(block);
 
     return 0;
 }
@@ -93,6 +94,12 @@ void BuddyAllocator::debug()
         }
         cout << endl;
     }
+
+    BlockHeader* block = _start;
+    block = split(block);
+    cout << "Start: " << _start << endl;
+    cout << "Block Address: " << block << endl;
+    cout << "Buddy Address: " << getbuddy(block) << endl;
 
     cout << endl;
 }
