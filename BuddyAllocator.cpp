@@ -7,8 +7,8 @@ using namespace std;
 
 BuddyAllocator::BuddyAllocator(uint blockSize, uint memorySize)
 {
-    _blockSize = _getNextPowerOfTwo(blockSize + sizeof(BlockHeader));
-    _memorySize = _getNextPowerOfTwo(memorySize + sizeof(BlockHeader));
+    _blockSize = _getNextPowerOfTwo(blockSize);
+    _memorySize = _getNextPowerOfTwo(memorySize);
     
     // Setting up each list for each level
     for(int i = 0; i <= log2(_memorySize / _blockSize); i++)
@@ -83,6 +83,16 @@ void BuddyAllocator::debug()
 
     cout << "\t \tSize of BlockHeader: " << sizeof(BlockHeader);
     cout << "\t \tStarting Address: " << _start << endl;
+
+    for (int i = 0; i < _freeList.size(); i++) {
+        cout << i << " (" << _freeList.at(i).GetSize() << "): ";
+        BlockHeader* curr = _freeList.at(i).GetHead();
+        while (curr != nullptr) {
+            cout << "{" << curr->Size << "," << curr->next << "} ";
+            curr = curr->next;
+        }
+        cout << endl;
+    }
 
     cout << endl;
 }
