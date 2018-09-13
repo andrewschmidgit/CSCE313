@@ -30,7 +30,7 @@ class BlockHeader
     bool Free;
 
     // Structors
-    BlockHeader(uint size) : Size(size), Free(true) {}
+    BlockHeader(uint size) : Size(size), Free(false) {}
 };
 
 class LinkedList
@@ -106,7 +106,10 @@ class BuddyAllocator
     BlockHeader* getbuddy(BlockHeader* block) { return reinterpret_cast<BlockHeader*>(((reinterpret_cast<char*>(block) - _start) ^ block->Size) + _start); }
     // given a block address, this function returns the address of its buddy
 
-    bool isvalid(BlockHeader* block) { return block != nullptr && block->Size % _blockSize == 0; }
+    bool isvalid(BlockHeader* block) { return block != nullptr 
+        && block->Size >= _blockSize
+        && block->Size <= _memorySize
+        && block->Size % _blockSize == 0; }
     // Is the memory starting at addr is a valid block
     // This is used to verify whether the a computed block address is actually correct
 

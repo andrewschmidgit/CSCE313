@@ -63,9 +63,8 @@ int BuddyAllocator::free(char *_a)
 {
     // -1 to move over one BlockHeader
     if(_a == nullptr) return 1;
-    BlockHeader* block = ((BlockHeader*)_a) - 1;
+    BlockHeader* block = (reinterpret_cast<BlockHeader*>(_a)) - 1;
     if(isvalid(block) == false) return 1;
-    cout << "??" << endl;
     block->Free = true;
     BlockHeader* buddy = getbuddy(block);
     removeFromFreeList(block);
@@ -73,7 +72,8 @@ int BuddyAllocator::free(char *_a)
     {
         block = merge(block, buddy);
         removeFromFreeList(buddy);
-        buddy = getbuddy(block);
+        if(block->Size != _memorySize) buddy = getbuddy(block);
+        else buddy = nullptr;
     }
 
     addToFreeList(block);
