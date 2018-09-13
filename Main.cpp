@@ -41,8 +41,16 @@ int main(int argc, char **argv)
 
     allocator->debug();
     // test memory manager
-    Ackerman *am = new Ackerman();
-    am->test(allocator); // this is the full-fledged test.
+    vector<char*> xs;
+    for(int i = 0; i < 10; i++)
+        xs.push_back(allocator->alloc(i));
+    allocator->debug();
+    for(int i = 0; i < 10; i++)
+        allocator->free(xs[i]);
+    allocator->debug();
+
+    // Ackerman *am = new Ackerman();
+    // am->test(allocator); // this is the full-fledged test.
 
     // destroy memory manager
     delete allocator;

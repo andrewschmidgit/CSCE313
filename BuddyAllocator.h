@@ -100,16 +100,10 @@ class BuddyAllocator
 	 this will allow you and us to do unit test */
     uint _blockSize;
     uint _memorySize;
-    BlockHeader* _start;
+    char* _start;
     vector<LinkedList> _freeList;
 
-    BlockHeader* getbuddy(BlockHeader* block)
-    {
-        uint size = block->Size;
-        intptr_t zeroedAddress = (intptr_t)block - (intptr_t)_start;
-        intptr_t buddyAddress = zeroedAddress ^ (intptr_t)size + (intptr_t)_start;
-        return (BlockHeader*)buddyAddress;
-    }
+    BlockHeader* getbuddy(BlockHeader* block) { return reinterpret_cast<BlockHeader*>(((reinterpret_cast<char*>(block) - _start) ^ block->Size) + _start); }
     // given a block address, this function returns the address of its buddy
 
     bool isvalid(BlockHeader* block) { return block != nullptr && block->Size % _blockSize == 0; }
@@ -122,20 +116,25 @@ class BuddyAllocator
     }
     // checks whether the two blocks are buddies are not
 
-    BlockHeader* merge(BlockHeader* block1, BlockHeader* block2)
+    BlockHeader* merge(BlockHeader* block, BlockHeader* buddy)
     {
-        block1->Size *= 2;
-        return block1;
+        if (block > buddy) {
+            BlockHeader* temp = block;
+            block = buddy;
+            buddy = block;
+        }
+        block->Size *= 2;
+        return block;
     }
     // this function merges the two blocks returns the beginning address of the merged block
     // note that either block1 can be to the left of block2, or the other way around
 
     BlockHeader* split(BlockHeader* block)
     {
-        int removeIndex = log2(block->Size / _blockSize);
         block->Size /= 2;
         BlockHeader* blockBuddy = getbuddy(block);
         blockBuddy->Size = block->Size;
+        blockBuddy->Free = true;
 
         return block;
     }
