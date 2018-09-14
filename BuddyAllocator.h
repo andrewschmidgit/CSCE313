@@ -103,7 +103,11 @@ class BuddyAllocator
     char* _start;
     vector<LinkedList> _freeList;
 
-    BlockHeader* getbuddy(BlockHeader* block) { return reinterpret_cast<BlockHeader*>(((reinterpret_cast<char*>(block) - _start) ^ block->Size) + _start); }
+    BlockHeader* getbuddy(BlockHeader* block) 
+    {
+        if(block->Size >= _memorySize) return nullptr;
+        return reinterpret_cast<BlockHeader*>(((reinterpret_cast<char*>(block) - _start) ^ block->Size) + _start);
+    }
     // given a block address, this function returns the address of its buddy
 
     bool isvalid(BlockHeader* block) { return block != nullptr 

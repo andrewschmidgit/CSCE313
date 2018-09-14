@@ -39,8 +39,8 @@ int main(int argc, char **argv)
     // create memory manager
     BuddyAllocator *allocator = new BuddyAllocator(blockSize, memorySize);
 
-    allocator->debug();
     // test memory manager
+    // allocator->debug();
     // vector<char*> xs;
     // for(int i = 0; i < 10; i++)
     //     xs.push_back(allocator->alloc(i));

@@ -49,6 +49,7 @@ char *BuddyAllocator::alloc(uint length)
     while(block->Size != requestedSize) {
         removeFromFreeList(block);
         block = split(block);
+        block->Free = false;
         buddy = getbuddy(block);
         buddy->Free = true;
         addToFreeList(buddy);
