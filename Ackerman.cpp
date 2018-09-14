@@ -111,20 +111,14 @@ int Ackerman::Recurse(int a, int b)
             result = Recurse(a - 1, Recurse(a, b - 1));
 
         // check memory value before deleting
-        stringstream result;
         for (int i = 0; i < to_alloc; i++)
         {
             if (((char *)mem)[i] != c)
             {
                 cout << "Memory checking error!" << endl;
-                auto m = ((char *)mem)[i];
-                result << "{" << m << "," << c << "}\t";
                 break;
             }
-            
-            // if(i % 4 == 0) result << "\n";
         }
-        cout << result.str() << endl;
         ba->free(mem);
     }
 

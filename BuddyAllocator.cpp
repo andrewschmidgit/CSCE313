@@ -45,17 +45,16 @@ char *BuddyAllocator::alloc(uint length)
         }
     }
     if(block == nullptr) return nullptr;
-    BlockHeader* buddy;
+    removeFromFreeList(block);
+    block->Free = false;
+
     while(block->Size != requestedSize) {
-        removeFromFreeList(block);
         block = split(block);
-        block->Free = false;
-        buddy = getbuddy(block);
+        BlockHeader* buddy = getbuddy(block);
         buddy->Free = true;
         addToFreeList(buddy);
     }
 
-    block->Free = false;
     // +1 to move over one BlockHeader
     return (char*)(block + 1);
 }
@@ -64,7 +63,7 @@ int BuddyAllocator::free(char *_a)
 {
     // -1 to move over one BlockHeader
     if(_a == nullptr) return 1;
-    BlockHeader* block = (reinterpret_cast<BlockHeader*>(_a)) - 1;
+    BlockHeader* block = reinterpret_cast<BlockHeader*>(_a) - 1;
     if(isvalid(block) == false) return 1;
     block->Free = true;
     BlockHeader* buddy = getbuddy(block);
