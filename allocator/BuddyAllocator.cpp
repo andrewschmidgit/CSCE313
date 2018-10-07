@@ -82,7 +82,10 @@ void BuddyAllocator::debug()
 
     cout << "\t \tSize of BlockHeader: " << sizeof(BlockHeader);
     cout << "\t \tStarting Address: " << _start << endl;
+<<<<<<< HEAD:BuddyAllocator.cpp
 
+=======
+>>>>>>> 9cab6dd0c279efc1b0b7c63f90630e8a3019c2e4:allocator/BuddyAllocator.cpp
     for (int i = 0; i < _freeList.size(); i++) {
         cout << i << "\t| (" << _freeList[i].GetSize() << "): ";
         auto* cur = _freeList[i].GetHead();
