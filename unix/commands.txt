@@ -45,6 +45,3 @@ echo "<<<<< Miscellenous >>>>>"
 rm newpwd.txt
 jobs
 sleep 10
-
-echo "<<<<< Optional... >>>>>"
-cat /proc/$(ps|grep bash|head -1|awk '{print $1}')/status

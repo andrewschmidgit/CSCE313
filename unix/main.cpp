@@ -1,11 +1,19 @@
 #include "unistd.h"
 #include <string>
 #include <limits.h>
+#include <pwd.h>
 #include <iostream>
 #include "Tokenizer.h"
 #include "Shell.h"
 
 using namespace std;
+
+bool Prompt(bool isSilent) {
+    char cwd[PATH_MAX];
+    // if(!isSilent)
+        cout << getpwuid(geteuid())->pw_name << ":" << getcwd(cwd, sizeof(cwd)) << "$ ";
+    return true;
+}
 
 int main(int argc, char **argv) {
     int argDelimiter;
@@ -31,9 +39,12 @@ int main(int argc, char **argv) {
     char cwd[PATH_MAX];
 
     Shell shell;
-
-    while(printf("%s> ", getcwd(cwd, sizeof(cwd))) && getline(cin, input) && input != "exit") {
-        vector<Token> tokens = Tokenizer::Tokenize(input);
+    if(testingFlag)
+        cout << endl << "------------------- Testing --------------------" << endl << endl;
+    
+    Prompt(testingFlag);
+    while(getline(cin, input)) {
+        vector<Token> tokens = Tokenizer::Tokenize(input, testingFlag);
         
         // Tokenizer testing
         if(testingFlag) {
@@ -43,5 +54,6 @@ int main(int argc, char **argv) {
         }
 
         shell.Execute(tokens, testingFlag);
+        Prompt(testingFlag);
     }
 }
