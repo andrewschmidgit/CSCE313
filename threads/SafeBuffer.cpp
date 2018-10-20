@@ -1,6 +1,7 @@
 #include "SafeBuffer.h"
 #include <string>
 #include <queue>
+#include <iostream>
 using namespace std;
 
 SafeBuffer::SafeBuffer() {
@@ -42,4 +43,15 @@ string SafeBuffer::pop() {
 	q.pop();
     pthread_mutex_unlock(&lock);
 	return s;
+}
+
+void SafeBuffer::print() {
+    queue<string> temp;
+    while(q.empty() == false) {
+        string s = q.front();
+        q.pop();
+        cout << s << " ";
+    }
+    cout << endl;
+    q = temp;
 }

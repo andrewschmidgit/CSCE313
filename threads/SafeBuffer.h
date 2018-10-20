@@ -17,6 +17,7 @@ public:
 	int size();
     void push (string str);
     string pop();
+    void print();
 };
 
 #endif /* SafeBuffer_ */

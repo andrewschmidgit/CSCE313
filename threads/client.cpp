@@ -50,9 +50,10 @@ void* request_thread_function(void* arg) {
 		the data requests are being pushed: you MAY NOT
 		create 3 copies of this function, one for each "patient".
 	 */
-
-	for(;;) {
-
+    char** args = (char**) arg;
+    SafeBuffer* buffer = (SafeBuffer*)args[2];
+	for(int i = 0; i < (int)*args[0]; i++) {
+        buffer->push(string(args[1]));
 	}
 }
 
@@ -112,6 +113,20 @@ int main(int argc, char * argv[]) {
 
 		SafeBuffer request_buffer;
 		Histogram hist;
+        
+        //3 threads
+        pthread_t john;
+        char** johnArgs = new char*[3];
+        johnArgs[0] = (char*)n;
+        johnArgs[1] = "data John Smith";
+        johnArgs[2] = (char*)&request_buffer;
+        pthread_t jane;
+        pthread_t joe;
+        pthread_create(&john, NULL, request_thread_function, johnArgs);
+        pthread_join(john, NULL);
+        cout << "Testing: ";
+        request_buffer.print();
+        cout << endl;
 
         for(int i = 0; i < n; ++i) {
             request_buffer.push("data John Smith");
@@ -145,7 +160,7 @@ int main(int argc, char * argv[]) {
         }
         chan->cwrite ("quit");
         delete chan;
-        cout << "All Done!!!" << endl; 
+        cout << "All Done!!!" << endl;
 
 		hist.print ();
     }
