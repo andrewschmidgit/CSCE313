@@ -127,18 +127,18 @@ int main(int argc, char * argv[]) {
         pthread_t john;
         RequestArguments* johnArgs = new RequestArguments(n, "data John Smith", &request_buffer);
         pthread_t jane;
+        RequestArguments* janeArgs = new RequestArguments(n, "data Jane Smith", &request_buffer);
         pthread_t joe;
+        RequestArguments* joeArgs = new RequestArguments(n, "data Joe Smith", &request_buffer);
         pthread_create(&john, NULL, request_thread_function, johnArgs);
+        pthread_create(&jane, NULL, request_thread_function, janeArgs);
+        pthread_create(&joe, NULL, request_thread_function, joeArgs);
+        
         pthread_join(john, NULL);
-        cout << "Testing: ";
-        request_buffer.print();
+        pthread_join(jane, NULL);
+        pthread_join(joe, NULL);
         cout << endl;
 
-        for(int i = 0; i < n; ++i) {
-            request_buffer.push("data John Smith");
-            request_buffer.push("data Jane Smith");
-            request_buffer.push("data Joe Smith");
-        }
         cout << "Done populating request buffer" << endl;
 
         cout << "Pushing quit requests... ";
