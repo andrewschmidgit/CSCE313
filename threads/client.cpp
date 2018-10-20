@@ -35,6 +35,16 @@
 #include "Histogram.h"
 using namespace std;
 
+struct RequestArguments {
+    int RequestCount;
+    string Name;
+    SafeBuffer* Buffer;
+    RequestArguments(int requestCount, string name, SafeBuffer* buffer) {
+        RequestCount = requestCount;
+        Name = name;
+        Buffer = buffer;
+    }
+};
 
 void* request_thread_function(void* arg) {
 	/*
@@ -116,10 +126,7 @@ int main(int argc, char * argv[]) {
         
         //3 threads
         pthread_t john;
-        char** johnArgs = new char*[3];
-        johnArgs[0] = (char*)n;
-        johnArgs[1] = "data John Smith";
-        johnArgs[2] = (char*)&request_buffer;
+        RequestArguments* johnArgs = new RequestArguments(n, "data John Smith", &request_buffer);
         pthread_t jane;
         pthread_t joe;
         pthread_create(&john, NULL, request_thread_function, johnArgs);
