@@ -60,11 +60,10 @@ void* request_thread_function(void* arg) {
 		the data requests are being pushed: you MAY NOT
 		create 3 copies of this function, one for each "patient".
 	 */
-    char** args = (char**) arg;
-    SafeBuffer* buffer = (SafeBuffer*)args[2];
-	for(int i = 0; i < (int)*args[0]; i++) {
-        buffer->push(string(args[1]));
-	}
+    RequestArguments* args = (RequestArguments*)arg;
+    for(int i = 0; i < args->RequestCount; i++) {
+        args->Buffer->push(args->Name);
+    }
 }
 
 void* worker_thread_function(void* arg) {
