@@ -71,14 +71,8 @@ class Shell
                 break;
             }
         }
-
-        // Command* temp = command;
-        // while(temp != nullptr) {
-        //     cout << temp->Name << " ";
-        //     temp = temp->Next;
-        // }
-        // cout << endl;
-
+        
+        
         return command;
     }
 
@@ -93,9 +87,11 @@ class Shell
         int nextFD[2];
         bool isFirst = true;
         int status;
+
         pipe(prevFD);
         while (command)
         {
+            cout << "\'" << command->RedirectFilename << "\'" << endl;
             // Special cases
             if (command->Name == "exit")
             {
@@ -152,7 +148,9 @@ class Shell
                 }
                 else
                 {
+                    waitpid(pid, 0, 0);
                     close(redirectionFD);
+                    command = command->Next;
                     break;
                 }
             }
@@ -196,9 +194,9 @@ class Shell
                     prevFD[1] = nextFD[1];
                 }
             }
-            command = command->Next;
+            waitpid(pid, 0, 0);
             isFirst = false;
-            wait(0);
+            command = command->Next;
         }
     }
 };
