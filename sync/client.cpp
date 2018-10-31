@@ -216,7 +216,12 @@ int main(int argc, char *argv[])
 
         pthread_create(&johnStat, nullptr, stat_thread_function, johnStatArgs);
         pthread_create(&janeStat, nullptr, stat_thread_function, janeStatArgs);
-        pthread_create(&joeStat, nullptr, stat_thread_function, joeStatArgs);
+        pthread_create(&joeStat, nullptr, stat_thread_function, joeStatArgs);        
+        
+        // Waiting
+        pthread_join(john, nullptr);
+        pthread_join(jane, nullptr);
+        pthread_join(joe, nullptr);
 
         // Pushing Quit Requests
         cout << "Pushing quit requests... ";
@@ -225,11 +230,6 @@ int main(int argc, char *argv[])
             request_buffer.push("quit");
         }
         cout << "done." << endl;
-        
-        // Waiting
-        pthread_join(john, nullptr);
-        pthread_join(jane, nullptr);
-        pthread_join(joe, nullptr);
 
         for(auto worker: workers)
             pthread_join(worker, nullptr);
