@@ -118,10 +118,11 @@ void *worker_thread_function(void *arg)
 }
 
 struct StatArguments {
+    int Count;
     string Name;
     BoundedBuffer* Buffer;
     Histogram *Hist;
-    StatArguments(string name, BoundedBuffer* buffer, Histogram* hist): Name(name), Buffer(buffer), Hist(hist) {}
+    StatArguments(int count, string name, BoundedBuffer* buffer, Histogram* hist): Count(count), Name(name), Buffer(buffer), Hist(hist) {}
 };
 
 void *stat_thread_function(void *arg)
@@ -136,8 +137,10 @@ void *stat_thread_function(void *arg)
 
      */
     StatArguments* args = (StatArguments*)arg;
-    for(auto response = args->Buffer->pop(); args->Buffer->size() != 0; response = args->Buffer->pop())
+    for(int i = 0; i < args->Count; i++) {
+        auto response = args->Buffer->pop();
         args->Hist->update(args->Name, response);
+    }
 }
 
 /*--------------------------------------------------------------------------*/
@@ -207,9 +210,9 @@ int main(int argc, char *argv[])
         }
 
         pthread_t johnStat, janeStat, joeStat;
-        StatArguments* johnStatArgs = new StatArguments("data John Smith", &johnBuffer, &hist);
-        StatArguments* janeStatArgs = new StatArguments("data Jane Smith", &janeBuffer, &hist);
-        StatArguments* joeStatArgs = new StatArguments("data Joe Smith", &joeBuffer, &hist);
+        StatArguments* johnStatArgs = new StatArguments(b/3, "data John Smith", &johnBuffer, &hist);
+        StatArguments* janeStatArgs = new StatArguments(b/3, "data Jane Smith", &janeBuffer, &hist);
+        StatArguments* joeStatArgs = new StatArguments(b/3, "data Joe Smith", &joeBuffer, &hist);
 
         pthread_create(&johnStat, nullptr, stat_thread_function, johnStatArgs);
         pthread_create(&janeStat, nullptr, stat_thread_function, janeStatArgs);
@@ -221,7 +224,7 @@ int main(int argc, char *argv[])
         pthread_join(joe, nullptr);
         
         cout << "Done populating request buffer" << endl;
-        
+
         // Pushing Quit Requests
         cout << "Pushing quit requests... ";
         for (int i = 0; i < w; ++i)
