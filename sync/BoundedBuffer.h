@@ -4,16 +4,22 @@
 #include <stdio.h>
 #include <queue>
 #include <string>
+#include <pthread.h>
 using namespace std;
 
-class BoundedBuffer {
-private:
-	queue<string> q;	
-public:
+class BoundedBuffer
+{
+  private:
+    queue<string> q;
+    int _capacity;
+    pthread_mutex_t _lock;
+    pthread_cond_t _max;
+    pthread_cond_t _min;
+  public:
     BoundedBuffer(int);
-	~BoundedBuffer();
-	int size();
-    void push (string);
+    ~BoundedBuffer();
+    int size();
+    void push(string);
     string pop();
 };
 

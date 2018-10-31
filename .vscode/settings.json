@@ -1,6 +1,8 @@
 {
     "C_Cpp.intelliSenseEngineFallback": "Enabled",
     "files.associations": {
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "queue": "cpp",
+        "vector": "cpp"
     }
 }
