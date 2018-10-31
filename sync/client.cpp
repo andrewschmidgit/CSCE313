@@ -65,6 +65,7 @@ void *request_thread_function(void *arg)
     RequestArguments *args = (RequestArguments *)arg;
     for (int i = 0; i < args->RequestCount; i++)
         args->Buffer->push(args->Name);
+    cout << args->Name << endl;
 }
 
 struct WorkerArguments
