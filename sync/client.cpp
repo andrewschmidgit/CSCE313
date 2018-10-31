@@ -127,7 +127,7 @@ void *stat_thread_function(void *arg)
      */
     StatArguments* args = (StatArguments*)arg;
     for(int i = 0; i < args->Count; i++) {
-        cout << "Stat Func" << endl;
+        cout << "Stat Func " << args->Buffer->size() << endl;
         auto response = args->Buffer->pop();
         args->Hist->update(args->Name, response);
     }
