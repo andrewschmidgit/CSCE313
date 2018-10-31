@@ -13,7 +13,6 @@ class Histogram
     int hist[3][10];                // histogram for each person with 10 bins each
     unordered_map<string, int> map; // person name to index mapping
     vector<string> names;           // names of the 3 persons
-    pthread_mutex_t _lock;
   public:
     Histogram();
     void update(string, string); // updates the histogram

@@ -21,14 +21,8 @@ Histogram::Histogram()
 }
 void Histogram::update(string request, string response)
 {
-    /*
-	Is this function thread-safe???
-	Make necessary modifications to make it thread-safe
-	*/
     int person_index = map[request];
-    pthread_mutex_lock(&_lock);
     hist[person_index][stoi(response) / 10]++;
-    pthread_mutex_unlock(&_lock);
 }
 void Histogram::print()
 {

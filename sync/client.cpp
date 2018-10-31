@@ -193,16 +193,11 @@ int main(int argc, char *argv[])
 
         cout << "Done populating request buffer" << endl;
 
-        cout << "Pushing quit requests... ";
-        for (int i = 0; i < w; ++i)
-        {
-            request_buffer.push("quit");
-        }
-        cout << "done." << endl;
         
-        BoundedBuffer johnBuffer(b);
-        BoundedBuffer janeBuffer(b);
-        BoundedBuffer joeBuffer(b);
+        
+        BoundedBuffer johnBuffer(b/3);
+        BoundedBuffer janeBuffer(b/3);
+        BoundedBuffer joeBuffer(b/3);
         vector<pthread_t> workers;
         for(int i = 0; i < w; i++) {
             chan->cwrite("newchannel");
@@ -223,6 +218,14 @@ int main(int argc, char *argv[])
         pthread_create(&janeStat, nullptr, stat_thread_function, janeStatArgs);
         pthread_create(&joeStat, nullptr, stat_thread_function, joeStatArgs);
 
+        // Pushing Quit Requests
+        cout << "Pushing quit requests... ";
+        for (int i = 0; i < w; ++i)
+        {
+            request_buffer.push("quit");
+        }
+        cout << "done." << endl;
+        
         // Waiting
         pthread_join(john, nullptr);
         pthread_join(jane, nullptr);
