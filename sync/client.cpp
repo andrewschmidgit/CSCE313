@@ -111,6 +111,7 @@ void *worker_thread_function(void *arg)
             if(request.find("John") != string::npos) args->JohnBuffer->push(response);
             else if(request.find("Jane") != string::npos) args->JaneBuffer->push(response);
             else if(request.find("Joe") != string::npos) args->JoeBuffer->push(response);
+            cout << request << endl;
         }
     }
 }
@@ -171,7 +172,6 @@ int main(int argc, char *argv[])
     }
     else
     {
-
         cout << "n == " << n << endl;
         cout << "w == " << w << endl;
         cout << "b == " << b << endl;
@@ -192,8 +192,6 @@ int main(int argc, char *argv[])
         pthread_create(&joe, nullptr, request_thread_function, joeRequestArgs);
 
         cout << "Done populating request buffer" << endl;
-
-        
         
         BoundedBuffer johnBuffer(b/3);
         BoundedBuffer janeBuffer(b/3);
