@@ -8,6 +8,8 @@ BoundedBuffer::BoundedBuffer(int capacity)
 {
     _capacity = capacity;
     pthread_mutex_init(&_lock, nullptr);
+    pthread_cond_init(&_max, nullptr);
+    pthread_cond_init(&_min, nullptr);
 }
 
 BoundedBuffer::~BoundedBuffer()
