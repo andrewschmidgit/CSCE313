@@ -1,6 +1,7 @@
 #include "BoundedBuffer.h"
 #include <string>
 #include <queue>
+#include <iostream>
 using namespace std;
 
 BoundedBuffer::BoundedBuffer(int capacity)
@@ -25,6 +26,7 @@ void BoundedBuffer::push(string str)
 	Is this function thread-safe??? Does this automatically wait for the pop() to make room 
 	when the buffer if full to capacity???
 	*/
+    cout << "push" << endl;
     pthread_mutex_lock(&_lock);
     while(q.size() > _capacity)
         pthread_cond_wait(&_max, &_lock);
@@ -35,9 +37,7 @@ void BoundedBuffer::push(string str)
 
 string BoundedBuffer::pop()
 {
-    /*
-	Is this function thread-safe??? Does this automatically wait for the push() to make data available???
-	*/
+    cout << "pop" << endl;
     pthread_mutex_lock(&_lock);
     while(q.size() <= 0)
         pthread_cond_wait(&_min, &_lock);
