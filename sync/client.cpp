@@ -93,7 +93,6 @@ void *worker_thread_function(void *arg)
         }
         else
         {
-            cout << "Worker Func" << endl;
             string response = args->Channel->cread();
             if (request.find("John") != string::npos)
                 args->JohnBuffer->push(response);
@@ -101,7 +100,6 @@ void *worker_thread_function(void *arg)
                 args->JaneBuffer->push(response);
             else if (request.find("Joe") != string::npos)
                 args->JoeBuffer->push(response);
-            cout << "pushed" << endl;
         }
     }
 }
