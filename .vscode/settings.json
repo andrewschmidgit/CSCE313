@@ -3,6 +3,8 @@
     "files.associations": {
         "ostream": "cpp",
         "queue": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "*.tcc": "cpp",
+        "iostream": "cpp"
     }
 }

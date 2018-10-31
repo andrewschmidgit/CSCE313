@@ -63,8 +63,10 @@ void *request_thread_function(void *arg)
 		create 3 copies of this function, one for each "patient".
 	 */
     RequestArguments *args = (RequestArguments *)arg;
-    for (int i = 0; i < args->RequestCount; i++)
+    for (int i = 0; i < args->RequestCount; i++) {
+        cout << "Req Func" << endl;
         args->Buffer->push(args->Name);
+    }
     cout << args->Name << endl;
 }
 
@@ -81,20 +83,6 @@ struct WorkerArguments
 
 void *worker_thread_function(void *arg)
 {
-    /*
-		Fill in this function. 
-
-		Make sure it terminates only when, and not before,
-		all the requests have been processed.
-
-		Each thread must have its own dedicated
-		RequestChannel. Make sure that if you
-		construct a RequestChannel (or any object)
-		using "new" that you "delete" it properly,
-		and that you send a "quit" request for every
-		RequestChannel you construct regardless of
-		whether you used "new" for it.
-     */
     WorkerArguments *args = (WorkerArguments *)arg;
     while (true)
     {
@@ -108,6 +96,7 @@ void *worker_thread_function(void *arg)
         }
         else
         {
+            cout << "Worker Func" << endl;
             string response = args->Channel->cread();
             if(request.find("John") != string::npos) args->JohnBuffer->push(response);
             else if(request.find("Jane") != string::npos) args->JaneBuffer->push(response);
@@ -138,6 +127,7 @@ void *stat_thread_function(void *arg)
      */
     StatArguments* args = (StatArguments*)arg;
     for(int i = 0; i < args->Count; i++) {
+        cout << "Stat Func" << endl;
         auto response = args->Buffer->pop();
         args->Hist->update(args->Name, response);
     }
