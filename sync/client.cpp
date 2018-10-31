@@ -191,8 +191,6 @@ int main(int argc, char *argv[])
         pthread_create(&john, nullptr, request_thread_function, johnRequestArgs);
         pthread_create(&jane, nullptr, request_thread_function, janeRequestArgs);
         pthread_create(&joe, nullptr, request_thread_function, joeRequestArgs);
-
-        cout << "Done populating request buffer" << endl;
         
         BoundedBuffer johnBuffer(b/3);
         BoundedBuffer janeBuffer(b/3);
@@ -221,7 +219,9 @@ int main(int argc, char *argv[])
         pthread_join(john, nullptr);
         pthread_join(jane, nullptr);
         pthread_join(joe, nullptr);
-
+        
+        cout << "Done populating request buffer" << endl;
+        
         // Pushing Quit Requests
         cout << "Pushing quit requests... ";
         for (int i = 0; i < w; ++i)
