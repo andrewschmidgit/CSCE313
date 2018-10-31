@@ -139,7 +139,7 @@ void *stat_thread_function(void *arg)
 
 int main(int argc, char *argv[])
 {
-    int n = 100;   //default number of requests per "patient"
+    int n = 1;   //default number of requests per "patient"
     int w = 1;     //default number of worker threads
     int b = 3 * n; // default capacity of the request buffer, you should change this default
     int opt = 0;
