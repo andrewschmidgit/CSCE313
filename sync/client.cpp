@@ -63,11 +63,8 @@ void *request_thread_function(void *arg)
 		create 3 copies of this function, one for each "patient".
 	 */
     RequestArguments *args = (RequestArguments *)arg;
-    for (int i = 0; i < args->RequestCount; i++) {
-        cout << "Req Func" << endl;
+    for (int i = 0; i < args->RequestCount; i++)
         args->Buffer->push(args->Name);
-    }
-    cout << args->Name << endl;
 }
 
 struct WorkerArguments
@@ -98,20 +95,24 @@ void *worker_thread_function(void *arg)
         {
             cout << "Worker Func" << endl;
             string response = args->Channel->cread();
-            if(request.find("John") != string::npos) args->JohnBuffer->push(response);
-            else if(request.find("Jane") != string::npos) args->JaneBuffer->push(response);
-            else if(request.find("Joe") != string::npos) args->JoeBuffer->push(response);
-            cout << request << endl;
+            if (request.find("John") != string::npos)
+                args->JohnBuffer->push(response);
+            else if (request.find("Jane") != string::npos)
+                args->JaneBuffer->push(response);
+            else if (request.find("Joe") != string::npos)
+                args->JoeBuffer->push(response);
+            cout << "pushed" << endl;
         }
     }
 }
 
-struct StatArguments {
+struct StatArguments
+{
     int Count;
     string Name;
-    BoundedBuffer* Buffer;
+    BoundedBuffer *Buffer;
     Histogram *Hist;
-    StatArguments(int count, string name, BoundedBuffer* buffer, Histogram* hist): Count(count), Name(name), Buffer(buffer), Hist(hist) {}
+    StatArguments(int count, string name, BoundedBuffer *buffer, Histogram *hist) : Count(count), Name(name), Buffer(buffer), Hist(hist) {}
 };
 
 void *stat_thread_function(void *arg)
@@ -125,8 +126,9 @@ void *stat_thread_function(void *arg)
         histogram, does the Histogram class need to be thread-safe????
 
      */
-    StatArguments* args = (StatArguments*)arg;
-    for(int i = 0; i < args->Count; i++) {
+    StatArguments *args = (StatArguments *)arg;
+    for (int i = 0; i < args->Count; i++)
+    {
         cout << "Stat Func " << args->Buffer->size() << endl;
         auto response = args->Buffer->pop();
         args->Hist->update(args->Name, response);
@@ -139,7 +141,7 @@ void *stat_thread_function(void *arg)
 
 int main(int argc, char *argv[])
 {
-    int n = 1;   //default number of requests per "patient"
+    int n = 1;     //default number of requests per "patient"
     int w = 1;     //default number of worker threads
     int b = 3 * n; // default capacity of the request buffer, you should change this default
     int opt = 0;
@@ -184,35 +186,36 @@ int main(int argc, char *argv[])
         pthread_create(&john, nullptr, request_thread_function, johnRequestArgs);
         pthread_create(&jane, nullptr, request_thread_function, janeRequestArgs);
         pthread_create(&joe, nullptr, request_thread_function, joeRequestArgs);
-        
-        BoundedBuffer johnBuffer(b/3);
-        BoundedBuffer janeBuffer(b/3);
-        BoundedBuffer joeBuffer(b/3);
+
+        BoundedBuffer johnBuffer(b / 3);
+        BoundedBuffer janeBuffer(b / 3);
+        BoundedBuffer joeBuffer(b / 3);
         vector<pthread_t> workers;
-        for(int i = 0; i < w; i++) {
+        for (int i = 0; i < w; i++)
+        {
             chan->cwrite("newchannel");
             string s = chan->cread();
             RequestChannel *workerChannel = new RequestChannel(s, RequestChannel::CLIENT_SIDE);
-            WorkerArguments* workerArguments = new WorkerArguments(workerChannel, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
+            WorkerArguments *workerArguments = new WorkerArguments(workerChannel, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
             pthread_t worker;
             pthread_create(&worker, nullptr, worker_thread_function, workerArguments);
             workers.push_back(worker);
         }
 
         pthread_t johnStat, janeStat, joeStat;
-        StatArguments* johnStatArgs = new StatArguments(b/3, "data John Smith", &johnBuffer, &hist);
-        StatArguments* janeStatArgs = new StatArguments(b/3, "data Jane Smith", &janeBuffer, &hist);
-        StatArguments* joeStatArgs = new StatArguments(b/3, "data Joe Smith", &joeBuffer, &hist);
+        StatArguments *johnStatArgs = new StatArguments(b / 3, "data John Smith", &johnBuffer, &hist);
+        StatArguments *janeStatArgs = new StatArguments(b / 3, "data Jane Smith", &janeBuffer, &hist);
+        StatArguments *joeStatArgs = new StatArguments(b / 3, "data Joe Smith", &joeBuffer, &hist);
 
         pthread_create(&johnStat, nullptr, stat_thread_function, johnStatArgs);
         pthread_create(&janeStat, nullptr, stat_thread_function, janeStatArgs);
-        pthread_create(&joeStat, nullptr, stat_thread_function, joeStatArgs);        
-        
+        pthread_create(&joeStat, nullptr, stat_thread_function, joeStatArgs);
+
         // Waiting
         pthread_join(john, nullptr);
         pthread_join(jane, nullptr);
         pthread_join(joe, nullptr);
-        
+
         cout << "Done populating request buffer" << endl;
 
         // Pushing Quit Requests
@@ -223,13 +226,13 @@ int main(int argc, char *argv[])
         }
         cout << "done." << endl;
 
-        for(auto worker: workers)
+        for (auto worker : workers)
             pthread_join(worker, nullptr);
 
         pthread_join(johnStat, nullptr);
         pthread_join(janeStat, nullptr);
         pthread_join(joeStat, nullptr);
-        
+
         chan->cwrite("quit");
         delete chan;
         cout << "All Done!!!" << endl;
