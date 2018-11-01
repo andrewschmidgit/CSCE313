@@ -145,6 +145,7 @@ void *stat_thread_function(void *arg)
 
      */
     StatArguments *args = (StatArguments *)arg;
+    print("Stat " + args->Name + " " + to_string(args->Count));
     for (int i = 0; i < args->Count; i++)
     {
         string response = args->Buffer->pop();
