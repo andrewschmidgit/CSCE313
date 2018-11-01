@@ -128,7 +128,6 @@ void *stat_thread_function(void *arg)
 
      */
     StatArguments *args = (StatArguments *)arg;
-    cout << "Count: " << args->Count << endl;
     for (int i = 0; i < args->Count; i++)
     {
         cout << args->Name << i << endl;
