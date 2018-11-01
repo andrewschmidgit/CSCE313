@@ -1,7 +1,9 @@
 #include "BoundedBuffer.h"
-#include <string>
-#include <queue>
+
 #include <iostream>
+#include <queue>
+#include <string>
+
 using namespace std;
 
 BoundedBuffer::BoundedBuffer(int capacity)
@@ -15,6 +17,8 @@ BoundedBuffer::BoundedBuffer(int capacity)
 BoundedBuffer::~BoundedBuffer()
 {
     pthread_mutex_destroy(&_lock);
+    pthread_cond_destroy(&_max);
+    pthread_cond_destroy(&_min);
 }
 
 int BoundedBuffer::size()
@@ -26,7 +30,7 @@ void BoundedBuffer::push(string str)
 {
     pthread_mutex_lock(&_lock);
     while(q.size() > _capacity)
-        pthread_cond_wait(&_max, &_lock);
+        cout << "Push: " << pthread_cond_wait(&_max, &_lock) << endl;
     q.push(str);
     pthread_cond_signal(&_min);
     pthread_mutex_unlock(&_lock);
@@ -36,7 +40,7 @@ string BoundedBuffer::pop()
 {
     pthread_mutex_lock(&_lock);
     while(q.size() <= 0)
-        pthread_cond_wait(&_min, &_lock);
+        cout << "Pop: " << pthread_cond_wait(&_min, &_lock) << endl;
     string s = q.front();
     q.pop();
     pthread_cond_signal(&_max);

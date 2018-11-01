@@ -112,7 +112,7 @@ struct StatArguments
     Histogram *Hist;
     StatArguments(int count, string name, BoundedBuffer *buffer, Histogram *hist) : Name(name), Buffer(buffer), Hist(hist) {
         Count = count || 1;
-        cout << "Count: " << Count;
+        cout << "Count: " << Count << endl;
     }
 };
 
