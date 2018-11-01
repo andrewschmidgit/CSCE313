@@ -13,8 +13,8 @@ class BoundedBuffer
     queue<string> q;
     int _capacity;
     pthread_mutex_t _lock;
-    pthread_cond_t _max;
-    pthread_cond_t _min;
+    pthread_cond_t _canPush;
+    pthread_cond_t _canPop;
   public:
     BoundedBuffer(int);
     ~BoundedBuffer();
