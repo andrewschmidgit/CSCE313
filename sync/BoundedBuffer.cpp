@@ -42,6 +42,7 @@ void BoundedBuffer::push(string str)
 string BoundedBuffer::pop()
 {
     pthread_mutex_lock(&_lock);
+    cout << "pop\n";
     while(q.size() == 0) {
         cout << "Waiting to pop: " << q.size() << endl;
         pthread_cond_wait(&_min, &_lock);
