@@ -9,6 +9,7 @@ using namespace std;
 BoundedBuffer::BoundedBuffer(int capacity)
 {
     _capacity = capacity;
+    cout << "Capacity: " << _capacity << endl;
     pthread_mutex_init(&_lock, nullptr);
     pthread_cond_init(&_max, nullptr);
     pthread_cond_init(&_min, nullptr);
@@ -30,7 +31,7 @@ void BoundedBuffer::push(string str)
 {
     pthread_mutex_lock(&_lock);
     while(q.size() > _capacity)
-        cout << "Push: " << pthread_cond_wait(&_max, &_lock) << endl;
+        pthread_cond_wait(&_max, &_lock);
     q.push(str);
     pthread_cond_signal(&_min);
     pthread_mutex_unlock(&_lock);
@@ -40,7 +41,7 @@ string BoundedBuffer::pop()
 {
     pthread_mutex_lock(&_lock);
     while(q.size() <= 0)
-        cout << "Pop: " << pthread_cond_wait(&_min, &_lock) << endl;
+        pthread_cond_wait(&_min, &_lock);
     string s = q.front();
     q.pop();
     pthread_cond_signal(&_max);
