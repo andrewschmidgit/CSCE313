@@ -104,6 +104,7 @@ void *worker_thread_function(void *arg)
         }
         else
         {
+            print("Infinite");
             string response = args->Channel->cread();
             if (request.find("John") != string::npos) {
                 args->JohnBuffer->push(response);
