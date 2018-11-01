@@ -223,9 +223,9 @@ int main(int argc, char *argv[])
         }
 
         pthread_t johnStat, janeStat, joeStat;
-        StatArguments *johnStatArgs = new StatArguments((b + 3 - 1)/ 3, "data John Smith", &johnBuffer, &hist);
-        StatArguments *janeStatArgs = new StatArguments((b + 3 - 1)/ 3, "data Jane Smith", &janeBuffer, &hist);
-        StatArguments *joeStatArgs = new StatArguments((b + 3 - 1)/ 3, "data Joe Smith", &joeBuffer, &hist);
+        StatArguments *johnStatArgs = new StatArguments(n, "data John Smith", &johnBuffer, &hist);
+        StatArguments *janeStatArgs = new StatArguments(n, "data Jane Smith", &janeBuffer, &hist);
+        StatArguments *joeStatArgs = new StatArguments(n, "data Joe Smith", &joeBuffer, &hist);
 
         pthread_create(&johnStat, nullptr, stat_thread_function, johnStatArgs);
         pthread_create(&janeStat, nullptr, stat_thread_function, janeStatArgs);
