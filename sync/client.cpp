@@ -112,7 +112,6 @@ struct StatArguments
     Histogram *Hist;
     StatArguments(int count, string name, BoundedBuffer *buffer, Histogram *hist) : Name(name), Buffer(buffer), Hist(hist) {
         Count = count || 1;
-        cout << "Count: " << Count << endl;
     }
 };
 
@@ -187,9 +186,9 @@ int main(int argc, char *argv[])
         pthread_create(&jane, nullptr, request_thread_function, janeRequestArgs);
         pthread_create(&joe, nullptr, request_thread_function, joeRequestArgs);
 
-        BoundedBuffer johnBuffer(b / 3);
-        BoundedBuffer janeBuffer(b / 3);
-        BoundedBuffer joeBuffer(b / 3);
+        BoundedBuffer johnBuffer((b + 3 - 1)/ 3);
+        BoundedBuffer janeBuffer((b + 3 - 1)/ 3);
+        BoundedBuffer joeBuffer((b + 3 - 1)/ 3);
 
         vector<pthread_t> workers;
         for (int i = 0; i < w; i++)
@@ -204,9 +203,9 @@ int main(int argc, char *argv[])
         }
 
         pthread_t johnStat, janeStat, joeStat;
-        StatArguments *johnStatArgs = new StatArguments(b / 3, "data John Smith", &johnBuffer, &hist);
-        StatArguments *janeStatArgs = new StatArguments(b / 3, "data Jane Smith", &janeBuffer, &hist);
-        StatArguments *joeStatArgs = new StatArguments(b / 3, "data Joe Smith", &joeBuffer, &hist);
+        StatArguments *johnStatArgs = new StatArguments((b + 3 - 1)/ 3, "data John Smith", &johnBuffer, &hist);
+        StatArguments *janeStatArgs = new StatArguments((b + 3 - 1)/ 3, "data Jane Smith", &janeBuffer, &hist);
+        StatArguments *joeStatArgs = new StatArguments((b + 3 - 1)/ 3, "data Joe Smith", &joeBuffer, &hist);
 
         pthread_create(&johnStat, nullptr, stat_thread_function, johnStatArgs);
         pthread_create(&janeStat, nullptr, stat_thread_function, janeStatArgs);

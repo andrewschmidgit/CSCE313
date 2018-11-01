@@ -8,8 +8,7 @@ using namespace std;
 
 BoundedBuffer::BoundedBuffer(int capacity)
 {
-    _capacity = capacity;
-    cout << "Capacity: " << _capacity << endl;
+    _capacity = capacity || 1;
     pthread_mutex_init(&_lock, nullptr);
     pthread_cond_init(&_max, nullptr);
     pthread_cond_init(&_min, nullptr);
