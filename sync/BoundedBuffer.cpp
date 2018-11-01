@@ -29,7 +29,7 @@ int BoundedBuffer::size()
 void BoundedBuffer::push(string str)
 {
     pthread_mutex_lock(&_lock);
-    while(q.size() > _capacity)
+    while(q.size() >= _capacity)
         pthread_cond_wait(&_max, &_lock);
     q.push(str);
     pthread_cond_signal(&_min);
