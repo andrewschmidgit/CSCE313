@@ -1,68 +1,64 @@
 Worker threads,Buffer size,Time
-0,0
-Worker threads,Buffer size,Time
 1,1
-Worker threads,Buffer size,Time
-1,1
-All Workers finished
+
 126211
 10,25
-All Workers finished
+
 11822.4
 20,50
-All Workers finished
+
 5921.42
 30,75
-All Workers finished
+
 4017.13
 40,100
-All Workers finished
+
 3082.47
 50,125
-All Workers finished
+
 2665.01
 60,150
-All Workers finished
+
 2302.1
 70,175
-All Workers finished
+
 2120.21
 80,200
-All Workers finished
+
 2063.91
 90,225
-All Workers finished
+
 2067.35
 100,250
-All Workers finished
+
 2077.92
 110,275
-All Workers finished
+
 2106.24
 120,300
-All Workers finished
+
 2136.36
 130,325
-All Workers finished
+
 2134.63
 140,350
-All Workers finished
+
 2158.09
 150,375
-All Workers finished
+
 2226.15
 160,400
-All Workers finished
+
 2261.14
 170,425
-All Workers finished
+
 2302.05
 180,450
-All Workers finished
+
 2365.98
 190,475
-All Workers finished
+
 2382.17
 200,500
-All Workers finished
+
 2365.3
