@@ -33,8 +33,8 @@ void BoundedBuffer::push(string str)
     while(q.size() == _capacity)
         pthread_cond_wait(&_canPush, &_lock);
     q.push(str);
-    pthread_mutex_unlock(&_lock);
     pthread_cond_signal(&_canPop);
+    pthread_mutex_unlock(&_lock);
 }
 
 string BoundedBuffer::pop()
@@ -44,7 +44,7 @@ string BoundedBuffer::pop()
         pthread_cond_wait(&_canPop, &_lock);
     string s = q.front();
     q.pop();
-    pthread_mutex_unlock(&_lock);
     pthread_cond_signal(&_canPush);
+    pthread_mutex_unlock(&_lock);
     return s;
 }

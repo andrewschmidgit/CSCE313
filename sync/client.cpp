@@ -34,6 +34,14 @@
 #include "Histogram.h"
 using namespace std;
 
+pthread_mutex_t lock;
+
+void print(string s) {
+    pthread_mutex_lock(&lock);
+    cout << s << endl;
+    pthread_mutex_unlock(&lock);
+}
+
 struct RequestArguments
 {
     int RequestCount;
@@ -95,12 +103,18 @@ void *worker_thread_function(void *arg)
         else
         {
             string response = args->Channel->cread();
-            if (request.find("John") != string::npos)
+            if (request.find("John") != string::npos) {
                 args->JohnBuffer->push(response);
-            else if (request.find("Jane") != string::npos)
+                print("John");
+            }
+            else if (request.find("Jane") != string::npos) {
                 args->JaneBuffer->push(response);
-            else if (request.find("Joe") != string::npos)
+                print("Jane");
+            }
+            else if (request.find("Joe") != string::npos) {
                 args->JoeBuffer->push(response);
+                print("Joe");
+            }
         }
     }
 }
