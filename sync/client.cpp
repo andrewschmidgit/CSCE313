@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
     int b = 3 * n; // default capacity of the request buffer, you should change this default
     int opt = 0;
     bool output = false;
-    while ((opt = getopt(argc, argv, "n:w:b:")) != -1)
+    while ((opt = getopt(argc, argv, "n:w:b:t")) != -1)
     {
         switch (opt)
         {
