@@ -144,8 +144,8 @@ void *stat_thread_function(void *arg)
     StatArguments *args = (StatArguments *)arg;
     for (int i = 0; i < args->Count; i++)
     {
-        print(args->Name + " " + to_string(i));
         string response = args->Buffer->pop();
+        print(args->Name + " " + to_string(i));
         args->Hist->update(args->Name, response);
     }
 }
