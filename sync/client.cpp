@@ -131,9 +131,9 @@ void *stat_thread_function(void *arg)
     cout << "Count: " << args->Count << endl;
     for (int i = 0; i < args->Count; i++)
     {
+        cout << args->Name << i << endl;
         string response = args->Buffer->pop();
         args->Hist->update(args->Name, response);
-        cout << i << endl;
     }
 }
 
