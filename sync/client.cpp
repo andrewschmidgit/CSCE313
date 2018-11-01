@@ -132,6 +132,7 @@ void *stat_thread_function(void *arg)
     {
         string response = args->Buffer->pop();
         args->Hist->update(args->Name, response);
+        cout << i << endl;
     }
 }
 
