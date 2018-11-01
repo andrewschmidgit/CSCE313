@@ -35,8 +35,8 @@ void BoundedBuffer::push(string str)
         pthread_cond_wait(&_max, &_lock);
     }
     q.push(str);
-    pthread_cond_signal(&_min);
     pthread_mutex_unlock(&_lock);
+    pthread_cond_signal(&_min);
 }
 
 string BoundedBuffer::pop()
@@ -49,7 +49,7 @@ string BoundedBuffer::pop()
     }
     string s = q.front();
     q.pop();
-    pthread_cond_signal(&_max);
     pthread_mutex_unlock(&_lock);
+    pthread_cond_signal(&_max);
     return s;
 }
