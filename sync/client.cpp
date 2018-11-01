@@ -110,7 +110,10 @@ struct StatArguments
     string Name;
     BoundedBuffer *Buffer;
     Histogram *Hist;
-    StatArguments(int count, string name, BoundedBuffer *buffer, Histogram *hist) : Count(count), Name(name), Buffer(buffer), Hist(hist) {}
+    StatArguments(int count, string name, BoundedBuffer *buffer, Histogram *hist) : Name(name), Buffer(buffer), Hist(hist) {
+        Count = count || 1;
+        cout << "Count: " << Count;
+    }
 };
 
 void *stat_thread_function(void *arg)
@@ -187,6 +190,7 @@ int main(int argc, char *argv[])
         BoundedBuffer johnBuffer(b / 3);
         BoundedBuffer janeBuffer(b / 3);
         BoundedBuffer joeBuffer(b / 3);
+
         vector<pthread_t> workers;
         for (int i = 0; i < w; i++)
         {
