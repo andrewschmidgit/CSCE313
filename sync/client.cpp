@@ -71,8 +71,10 @@ void *request_thread_function(void *arg)
 		create 3 copies of this function, one for each "patient".
 	 */
     RequestArguments *args = (RequestArguments *)arg;
-    for (int i = 0; i < args->RequestCount; i++)
+    for (int i = 0; i < args->RequestCount; i++) {
         args->Buffer->push(args->Name);
+        print("Pushed " + args->Name);
+    }
 }
 
 struct WorkerArguments
