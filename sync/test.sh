@@ -16,6 +16,9 @@ echo "Worker threads,Buffer size,Time" >> output.txt
 
 echo "1,1" >> output.txt
 	./client -t -n 10000 -w 1 -b 1 >> output.txt
+
+echo progress
+
 echo "10,25" >> output.txt
 	./client -t -n 10000 -w 10 -b 25 >> output.txt
 echo "20,50" >> output.txt
@@ -26,6 +29,9 @@ echo "40,100" >> output.txt
 	./client -t -n 10000 -w 40 -b 100 >> output.txt
 echo "50,125" >> output.txt
 	./client -t -n 10000 -w 50 -b 125 >> output.txt
+
+echo progress
+
 echo "60,150" >> output.txt
 	./client -t -n 10000 -w 60 -b 150 >> output.txt
 echo "70,175" >> output.txt
@@ -40,6 +46,9 @@ echo "110,275" >> output.txt
 	./client -t -n 10000 -w 110 -b 275 >> output.txt
 echo "120,300" >> output.txt
 	./client -t -n 10000 -w 120 -b 300 >> output.txt
+
+echo progress
+
 echo "130,325" >> output.txt
 	./client -t -n 10000 -w 130 -b 325 >> output.txt
 echo "140,350" >> output.txt
@@ -50,6 +59,9 @@ echo "160,400" >> output.txt
 	./client -t -n 10000 -w 160 -b 400 >> output.txt
 echo "170,425" >> output.txt
 	./client -t -n 10000 -w 170 -b 425 >> output.txt
+
+echo progress
+
 echo "180,450" >> output.txt
 	./client -t -n 10000 -w 180 -b 450 >> output.txt
 echo "190,475" >> output.txt
