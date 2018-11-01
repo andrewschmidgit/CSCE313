@@ -73,7 +73,6 @@ void *request_thread_function(void *arg)
     RequestArguments *args = (RequestArguments *)arg;
     for (int i = 0; i < args->RequestCount; i++) {
         args->Buffer->push(args->Name);
-        print("Request pushed " + args->Name);
     }
 }
 
@@ -94,12 +93,10 @@ void *worker_thread_function(void *arg)
     while (true)
     {
         string request = args->Buffer->pop();
-        print("Worker popped request " + request);
         args->Channel->cwrite(request);
 
         if (request == "quit")
         {
-            cout << "Worker finished" << endl;
             delete args->Channel;
             break;
         }
@@ -108,15 +105,12 @@ void *worker_thread_function(void *arg)
             string response = args->Channel->cread();
             if (request.find("John") != string::npos) {
                 args->JohnBuffer->push(response);
-                print("Worker pushed John");
             }
             else if (request.find("Jane") != string::npos) {
                 args->JaneBuffer->push(response);
-                print("Worker pushed Jane");
             }
             else if (request.find("Joe") != string::npos) {
                 args->JoeBuffer->push(response);
-                print("Worker pushed Joe");
             }
         }
     }
@@ -145,11 +139,9 @@ void *stat_thread_function(void *arg)
 
      */
     StatArguments *args = (StatArguments *)arg;
-    print("Stat " + args->Name + " " + to_string(args->Count));
     for (int i = 0; i < args->Count; i++)
     {
         string response = args->Buffer->pop();
-        print("Stat popped " + args->Name);
         args->Hist->update(args->Name, response);
     }
 }
