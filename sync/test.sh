@@ -14,8 +14,8 @@ make
 echo "Running tests..."
 echo "Worker threads,Buffer size,Time" >> output.txt
 
-echo "0,0," >> output.txt
-./client -t -n 10000 -w 0 -b 0 >> output.txt
+echo "1,1," >> output.txt
+./client -t -n 10000 -w 1 -b 1 >> output.txt
 echo progress
 echo "10,25," >> output.txt
 ./client -t -n 10000 -w 10 -b 25 >> output.txt
