@@ -111,7 +111,7 @@ struct StatArguments
     BoundedBuffer *Buffer;
     Histogram *Hist;
     StatArguments(int count, string name, BoundedBuffer *buffer, Histogram *hist) : Name(name), Buffer(buffer), Hist(hist) {
-        Count = count || 1;
+        Count = count;
     }
 };
 
@@ -127,9 +127,10 @@ void *stat_thread_function(void *arg)
 
      */
     StatArguments *args = (StatArguments *)arg;
+    cout << args->Count << endl;
     for (int i = 0; i < args->Count; i++)
     {
-        auto response = args->Buffer->pop();
+        string response = args->Buffer->pop();
         args->Hist->update(args->Name, response);
     }
 }
