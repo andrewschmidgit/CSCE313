@@ -159,11 +159,16 @@ int main(int argc, char *argv[])
             cout << "Establishing control channel... " << flush;
         }
         RequestChannel *chan = new RequestChannel("control", RequestChannel::CLIENT_SIDE);
-        if(!output)
-            cout << "done." << endl << flush;
+        if (!output)
+            cout << "done." << endl
+                 << flush;
 
         SafeBuffer request_buffer;
         Histogram hist;
+
+        // TIMING
+        struct timeval t1, t2;
+        gettimeofday(&t1, nullptr);
 
         //3 threads
         pthread_t john;
@@ -182,7 +187,8 @@ int main(int argc, char *argv[])
         pthread_join(jane, NULL);
         pthread_join(joe, NULL);
 
-        if(!output) {
+        if (!output)
+        {
             cout << "Done populating request buffer" << endl;
 
             cout << "Pushing quit requests... ";
@@ -192,15 +198,12 @@ int main(int argc, char *argv[])
             request_buffer.push("quit");
         }
 
-        if(!output)
+        if (!output)
             cout << "done." << endl;
 
         // Creates worker threads
-        // TIMING
-        struct timeval t1, t2;
-        
+
         vector<pthread_t> workers;
-        gettimeofday(&t1, nullptr);
         for (int i = 0; i < w; i++)
         {
             chan->cwrite("newchannel");
@@ -219,11 +222,12 @@ int main(int argc, char *argv[])
         {
             pthread_join(worker, nullptr);
         }
-        
+
         // Ending timer
         gettimeofday(&t2, nullptr);
 
-        if(output == true) {
+        if (output == true)
+        {
             double elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;
             elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;
             cout << elapsedTime << endl;
@@ -231,7 +235,8 @@ int main(int argc, char *argv[])
 
         chan->cwrite("quit");
         delete chan;
-        if(!output) {
+        if (!output)
+        {
             cout << "All Done!!!" << endl;
             hist.print();
         }

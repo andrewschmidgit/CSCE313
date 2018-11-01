@@ -34,14 +34,6 @@
 #include "Histogram.h"
 using namespace std;
 
-pthread_mutex_t lock;
-
-void print(string s) {
-    pthread_mutex_lock(&lock);
-    cout << s << endl;
-    pthread_mutex_unlock(&lock);
-}
-
 struct RequestArguments
 {
     int RequestCount;
@@ -71,9 +63,8 @@ void *request_thread_function(void *arg)
 		create 3 copies of this function, one for each "patient".
 	 */
     RequestArguments *args = (RequestArguments *)arg;
-    for (int i = 0; i < args->RequestCount; i++) {
+    for (int i = 0; i < args->RequestCount; i++)
         args->Buffer->push(args->Name);
-    }
 }
 
 struct WorkerArguments
@@ -103,15 +94,12 @@ void *worker_thread_function(void *arg)
         else
         {
             string response = args->Channel->cread();
-            if (request.find("John") != string::npos) {
+            if (request.find("John") != string::npos)
                 args->JohnBuffer->push(response);
-            }
-            else if (request.find("Jane") != string::npos) {
+            else if (request.find("Jane") != string::npos)
                 args->JaneBuffer->push(response);
-            }
-            else if (request.find("Joe") != string::npos) {
+            else if (request.find("Joe") != string::npos)
                 args->JoeBuffer->push(response);
-            }
         }
     }
 }
@@ -122,7 +110,8 @@ struct StatArguments
     string Name;
     BoundedBuffer *Buffer;
     Histogram *Hist;
-    StatArguments(int count, string name, BoundedBuffer *buffer, Histogram *hist) : Name(name), Buffer(buffer), Hist(hist) {
+    StatArguments(int count, string name, BoundedBuffer *buffer, Histogram *hist) : Name(name), Buffer(buffer), Hist(hist)
+    {
         Count = count;
     }
 };
@@ -152,10 +141,11 @@ void *stat_thread_function(void *arg)
 
 int main(int argc, char *argv[])
 {
-    int n = 100;     //default number of requests per "patient"
-    int w = 10;     //default number of worker threads
+    int n = 100;   //default number of requests per "patient"
+    int w = 10;    //default number of worker threads
     int b = 3 * n; // default capacity of the request buffer, you should change this default
     int opt = 0;
+    bool output = false;
     while ((opt = getopt(argc, argv, "n:w:b:")) != -1)
     {
         switch (opt)
@@ -169,6 +159,9 @@ int main(int argc, char *argv[])
         case 'b':
             b = atoi(optarg);
             break;
+        case 't':
+            output = true;
+            break;
         }
     }
 
@@ -179,13 +172,21 @@ int main(int argc, char *argv[])
     }
     else
     {
-        cout << "n == " << n << endl;
-        cout << "w == " << w << endl;
-        cout << "b == " << b << endl;
+        if (!output)
+        {
+            cout << "n == " << n << endl;
+            cout << "w == " << w << endl;
+            cout << "b == " << b << endl;
+        }
 
         RequestChannel *chan = new RequestChannel("control", RequestChannel::CLIENT_SIDE);
         BoundedBuffer request_buffer(b);
         Histogram hist;
+
+        // Start Timing
+        struct timeval t1, t2;
+        
+        gettimeofday(&t1, nullptr);
 
         //3 threads
         pthread_t john, jane, joe;
@@ -198,9 +199,9 @@ int main(int argc, char *argv[])
         pthread_create(&jane, nullptr, request_thread_function, janeRequestArgs);
         pthread_create(&joe, nullptr, request_thread_function, joeRequestArgs);
 
-        BoundedBuffer johnBuffer((b + 3 - 1)/ 3);
-        BoundedBuffer janeBuffer((b + 3 - 1)/ 3);
-        BoundedBuffer joeBuffer((b + 3 - 1)/ 3);
+        BoundedBuffer johnBuffer((b + 3 - 1) / 3);
+        BoundedBuffer janeBuffer((b + 3 - 1) / 3);
+        BoundedBuffer joeBuffer((b + 3 - 1) / 3);
 
         vector<pthread_t> workers;
         for (int i = 0; i < w; i++)
@@ -228,27 +229,42 @@ int main(int argc, char *argv[])
         pthread_join(jane, nullptr);
         pthread_join(joe, nullptr);
 
-        cout << "Done populating request buffer" << endl;
+        if (!output)
+            cout << "Done populating request buffer" << endl;
 
         // Pushing Quit Requests
-        cout << "Pushing quit requests... ";
+        if (!output)
+            cout << "Pushing quit requests... ";
         for (int i = 0; i < w; ++i)
         {
             request_buffer.push("quit");
         }
-        cout << "done." << endl;
+        if (!output)
+            cout << "done." << endl;
 
         for (auto worker : workers)
             pthread_join(worker, nullptr);
+
         cout << "All Workers finished" << endl;
         pthread_join(johnStat, nullptr);
         pthread_join(janeStat, nullptr);
         pthread_join(joeStat, nullptr);
+        
+        gettimeofday(&t2, nullptr);
+        
+        if (output == true)
+        {
+            double elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;
+            elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;
+            cout << elapsedTime << endl;
+        }
 
         chan->cwrite("quit");
         delete chan;
-        cout << "All Done!!!" << endl;
-
-        hist.print();
+        if (!output)
+        {
+            cout << "All Done!!!" << endl;
+            hist.print();
+        }
     }
 }
