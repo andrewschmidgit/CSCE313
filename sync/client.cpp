@@ -245,7 +245,8 @@ int main(int argc, char *argv[])
         for (auto worker : workers)
             pthread_join(worker, nullptr);
 
-        cout << "All Workers finished" << endl;
+        if(!output)
+            cout << "All Workers finished" << endl;
         pthread_join(johnStat, nullptr);
         pthread_join(janeStat, nullptr);
         pthread_join(joeStat, nullptr);
