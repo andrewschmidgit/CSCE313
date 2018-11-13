@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <unistd.h>
+#include <select.h>
 #include <pthread.h>
 
 #include "reqchannel.h"
@@ -100,6 +101,54 @@ void *worker_thread_function(void *arg)
                 args->JaneBuffer->push(response);
             else if (request.find("Joe") != string::npos)
                 args->JoeBuffer->push(response);
+        }
+    }
+}
+
+struct EventArguments
+{
+    int InitialRequestCount;
+    int RequestLimit;
+    RequestChannel *Control;
+
+    BoundedBuffer *Buffer;
+    BoundedBuffer *JohnBuffer;
+    BoundedBuffer *JaneBuffer;
+    BoundedBuffer *JoeBuffer;
+    EventArguments(RequestChannel *control, int initialRequestCount, int requestLimit, BoundedBuffer *buffer, BoundedBuffer *john, BoundedBuffer *jane, BoundedBuffer *joe) : Control(control), InitialRequestCount(initialRequestCount), RequestLimit(requestLimit), JohnBuffer(john), JaneBuffer(jane), JoeBuffer(joe) {}
+};
+
+void *EventThreadFunction(void *arg)
+{
+    EventArguments *args = (EventArguments *)arg;
+
+    vector<RequestChannel*> requestChannels;
+
+    // Setting up each request channel
+    int initial = min(args->InitialRequestCount, args->RequestLimit);
+    for (int i = 0; i < initial; i++)
+    {
+        args->Control->cwrite("newchannel");
+        string s = args->Control->cread();
+        RequestChannel *workerChannel = new RequestChannel(s, RequestChannel::CLIENT_SIDE);
+        string request = args->Buffer->pop();
+        workerChannel->cwrite(request);
+        requestChannels.push_back(workerChannel);
+    }
+
+    while(true) {
+        fd_set fds;
+        FD_ZERO(&fds);
+        for(auto channel: requestChannels) {
+            FD_SET(channel->read_fd(), &fds);
+        }
+        int readyFds = select(0, &fds, nullptr, nullptr, nullptr);
+        if(readyFds > 0) {
+            for(auto channel: requestChannels) {
+                if(FD_ISSET(channel->read_fd(), &fds)) {
+                    
+                }
+            }
         }
     }
 }
@@ -185,7 +234,6 @@ int main(int argc, char *argv[])
 
         // Start Timing
         struct timeval t1, t2;
-        
         gettimeofday(&t1, nullptr);
 
         //3 threads
@@ -203,17 +251,10 @@ int main(int argc, char *argv[])
         BoundedBuffer janeBuffer((b + 3 - 1) / 3);
         BoundedBuffer joeBuffer((b + 3 - 1) / 3);
 
-        vector<pthread_t> workers;
-        for (int i = 0; i < w; i++)
-        {
-            chan->cwrite("newchannel");
-            string s = chan->cread();
-            RequestChannel *workerChannel = new RequestChannel(s, RequestChannel::CLIENT_SIDE);
-            WorkerArguments *workerArguments = new WorkerArguments(workerChannel, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
-            pthread_t worker;
-            pthread_create(&worker, nullptr, worker_thread_function, workerArguments);
-            workers.push_back(worker);
-        }
+        // Event Handler stuff
+        EventArguments *eventArgs = new EventArguments(chan, w, 3 * n, &requestBuffer, &johnBuffer, &janeBuffer, &joeBuffer);
+        pthread_t eventHandler;
+        pthread_create(&eventHandler, nullptr, EventThreadFunction, eventArgs);
 
         pthread_t johnStat, janeStat, joeStat;
         StatArguments *johnStatArgs = new StatArguments(n, "data John Smith", &johnBuffer, &hist);
@@ -242,17 +283,17 @@ int main(int argc, char *argv[])
         if (!output)
             cout << "done." << endl;
 
-        for (auto worker : workers)
-            pthread_join(worker, nullptr);
+        // Waiting for event handler to finish (after pushing quit requests)
+        pthread_join(eventHandler, nullptr);
 
-        if(!output)
+        if (!output)
             cout << "All Workers finished" << endl;
         pthread_join(johnStat, nullptr);
         pthread_join(janeStat, nullptr);
         pthread_join(joeStat, nullptr);
-        
+
         gettimeofday(&t2, nullptr);
-        
+
         if (output == true)
         {
             double elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;
