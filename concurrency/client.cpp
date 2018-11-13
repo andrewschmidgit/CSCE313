@@ -27,7 +27,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <unistd.h>
-#include <select.h>
 #include <pthread.h>
 
 #include "reqchannel.h"
@@ -118,11 +117,25 @@ struct EventArguments
     EventArguments(RequestChannel *control, int initialRequestCount, int requestLimit, BoundedBuffer *buffer, BoundedBuffer *john, BoundedBuffer *jane, BoundedBuffer *joe) : Control(control), InitialRequestCount(initialRequestCount), RequestLimit(requestLimit), JohnBuffer(john), JaneBuffer(jane), JoeBuffer(joe) {}
 };
 
+struct RequestChannelPair {
+    RequestChannel *Channel;
+    string Request;
+    RequestChannelPair(RequestChannel *channel): Channel(channel) {}
+};
+
+int getMaxFileDescriptor(vector<RequestChannelPair> pairs) {
+    int ret = 0;
+    for(auto pair: pairs)
+        ret = max(ret, pair.Channel->read_fd());
+    return ret;
+}
+
+
 void *EventThreadFunction(void *arg)
 {
     EventArguments *args = (EventArguments *)arg;
 
-    vector<RequestChannel*> requestChannels;
+    vector<RequestChannelPair> requestChannelPairs;
 
     // Setting up each request channel
     int initial = min(args->InitialRequestCount, args->RequestLimit);
@@ -130,23 +143,40 @@ void *EventThreadFunction(void *arg)
     {
         args->Control->cwrite("newchannel");
         string s = args->Control->cread();
-        RequestChannel *workerChannel = new RequestChannel(s, RequestChannel::CLIENT_SIDE);
-        string request = args->Buffer->pop();
-        workerChannel->cwrite(request);
-        requestChannels.push_back(workerChannel);
+        RequestChannelPair pair(new RequestChannel(s, RequestChannel::CLIENT_SIDE));
+        requestChannelPairs.push_back(pair);
+        
+        cout << "Got here\n";
+
+        pair.Request = args->Buffer->pop();
+        pair.Channel->cwrite(pair.Request);
     }
 
-    while(true) {
+    bool isQuittingTime = false;
+    while(isQuittingTime == false) {
         fd_set fds;
         FD_ZERO(&fds);
-        for(auto channel: requestChannels) {
-            FD_SET(channel->read_fd(), &fds);
-        }
-        int readyFds = select(0, &fds, nullptr, nullptr, nullptr);
+        for(auto pair: requestChannelPairs)
+            FD_SET(pair.Channel->read_fd(), &fds);
+
+        int readyFds = select(getMaxFileDescriptor(requestChannelPairs), &fds, nullptr, nullptr, nullptr);
+
         if(readyFds > 0) {
-            for(auto channel: requestChannels) {
-                if(FD_ISSET(channel->read_fd(), &fds)) {
-                    
+            for(auto pair: requestChannelPairs) {
+                if(FD_ISSET(pair.Channel->read_fd(), &fds)) {
+                    string response = pair.Channel->cread();
+                    if (pair.Request.find("John") != string::npos)
+                        args->JohnBuffer->push(response);
+                    else if (pair.Request.find("Jane") != string::npos)
+                        args->JaneBuffer->push(response);
+                    else if (pair.Request.find("Joe") != string::npos)
+                        args->JoeBuffer->push(response);
+                    string request = args->Buffer->pop();
+                    if(request == "quit") {
+                        isQuittingTime = true;
+                        break;
+                    }
+                    pair.Channel->cwrite(pair.Request);
                 }
             }
         }
@@ -252,7 +282,7 @@ int main(int argc, char *argv[])
         BoundedBuffer joeBuffer((b + 3 - 1) / 3);
 
         // Event Handler stuff
-        EventArguments *eventArgs = new EventArguments(chan, w, 3 * n, &requestBuffer, &johnBuffer, &janeBuffer, &joeBuffer);
+        EventArguments *eventArgs = new EventArguments(chan, w, 3 * n, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
         pthread_t eventHandler;
         pthread_create(&eventHandler, nullptr, EventThreadFunction, eventArgs);
 
@@ -276,10 +306,7 @@ int main(int argc, char *argv[])
         // Pushing Quit Requests
         if (!output)
             cout << "Pushing quit requests... ";
-        for (int i = 0; i < w; ++i)
-        {
-            request_buffer.push("quit");
-        }
+        request_buffer.push("quit");
         if (!output)
             cout << "done." << endl;
 
