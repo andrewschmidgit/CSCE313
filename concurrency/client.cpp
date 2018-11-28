@@ -104,6 +104,85 @@ void *worker_thread_function(void *arg)
     }
 }
 
+struct EventArguments
+{
+    int InitialRequestCount;
+    int RequestLimit;
+    RequestChannel *Control;
+
+    BoundedBuffer *Buffer;
+    BoundedBuffer *JohnBuffer;
+    BoundedBuffer *JaneBuffer;
+    BoundedBuffer *JoeBuffer;
+    EventArguments(RequestChannel *control, int initialRequestCount, int requestLimit, BoundedBuffer *buffer, BoundedBuffer *john, BoundedBuffer *jane, BoundedBuffer *joe) : Control(control), InitialRequestCount(initialRequestCount), RequestLimit(requestLimit), JohnBuffer(john), JaneBuffer(jane), JoeBuffer(joe) {}
+};
+
+struct RequestChannelPair {
+    RequestChannel *Channel;
+    string Request;
+    RequestChannelPair(RequestChannel *channel): Channel(channel) {}
+};
+
+int getMaxFileDescriptor(vector<RequestChannelPair> pairs) {
+    int ret = 0;
+    for(auto pair: pairs)
+        ret = max(ret, pair.Channel->read_fd());
+    return ret;
+}
+
+
+void *EventThreadFunction(void *arg)
+{
+    EventArguments *args = (EventArguments *)arg;
+
+    vector<RequestChannelPair> requestChannelPairs;
+
+    // Setting up each request channel
+    int initial = min(args->InitialRequestCount, args->RequestLimit);
+    for (int i = 0; i < initial; i++)
+    {
+        args->Control->cwrite("newchannel");
+        string s = args->Control->cread();
+        RequestChannelPair pair(new RequestChannel(s, RequestChannel::CLIENT_SIDE));
+        requestChannelPairs.push_back(pair);
+        
+        cout << "Got here\n";
+
+        pair.Request = args->Buffer->pop();
+        pair.Channel->cwrite(pair.Request);
+    }
+
+    bool isQuittingTime = false;
+    while(isQuittingTime == false) {
+        fd_set fds;
+        FD_ZERO(&fds);
+        for(auto pair: requestChannelPairs)
+            FD_SET(pair.Channel->read_fd(), &fds);
+
+        int readyFds = select(getMaxFileDescriptor(requestChannelPairs), &fds, nullptr, nullptr, nullptr);
+
+        if(readyFds > 0) {
+            for(auto pair: requestChannelPairs) {
+                if(FD_ISSET(pair.Channel->read_fd(), &fds)) {
+                    string response = pair.Channel->cread();
+                    if (pair.Request.find("John") != string::npos)
+                        args->JohnBuffer->push(response);
+                    else if (pair.Request.find("Jane") != string::npos)
+                        args->JaneBuffer->push(response);
+                    else if (pair.Request.find("Joe") != string::npos)
+                        args->JoeBuffer->push(response);
+                    string request = args->Buffer->pop();
+                    if(request == "quit") {
+                        isQuittingTime = true;
+                        break;
+                    }
+                    pair.Channel->cwrite(pair.Request);
+                }
+            }
+        }
+    }
+}
+
 struct StatArguments
 {
     int Count;
@@ -185,7 +264,6 @@ int main(int argc, char *argv[])
 
         // Start Timing
         struct timeval t1, t2;
-        
         gettimeofday(&t1, nullptr);
 
         //3 threads
@@ -203,15 +281,10 @@ int main(int argc, char *argv[])
         BoundedBuffer janeBuffer((b + 3 - 1) / 3);
         BoundedBuffer joeBuffer((b + 3 - 1) / 3);
 
-        pthread_t worker;
-        pthread_create(&worker, nullptr, worker_thread_function, workerArguments);
-        for (int i = 0; i < w; i++)
-        {
-            chan->cwrite("newchannel");
-            string s = chan->cread();
-            RequestChannel *workerChannel = new RequestChannel(s, RequestChannel::CLIENT_SIDE);
-            WorkerArguments *workerArguments = new WorkerArguments(workerChannel, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
-        }
+        // Event Handler stuff
+        EventArguments *eventArgs = new EventArguments(chan, w, 3 * n, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
+        pthread_t eventHandler;
+        pthread_create(&eventHandler, nullptr, EventThreadFunction, eventArgs);
 
         pthread_t johnStat, janeStat, joeStat;
         StatArguments *johnStatArgs = new StatArguments(n, "data John Smith", &johnBuffer, &hist);
@@ -233,21 +306,21 @@ int main(int argc, char *argv[])
         // Pushing Quit Requests
         if (!output)
             cout << "Pushing quit requests... ";
-        for (int i = 0; i < w; ++i)
-        {
-            request_buffer.push("quit");
-        }
+        request_buffer.push("quit");
         if (!output)
             cout << "done." << endl;
 
-        if(!output)
+        // Waiting for event handler to finish (after pushing quit requests)
+        pthread_join(eventHandler, nullptr);
+
+        if (!output)
             cout << "All Workers finished" << endl;
         pthread_join(johnStat, nullptr);
         pthread_join(janeStat, nullptr);
         pthread_join(joeStat, nullptr);
-        
+
         gettimeofday(&t2, nullptr);
-        
+
         if (output == true)
         {
             double elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;
