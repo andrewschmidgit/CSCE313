@@ -5,6 +5,11 @@
         "queue": "cpp",
         "vector": "cpp",
         "*.tcc": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "array": "cpp",
+        "istream": "cpp",
+        "type_traits": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp"
     }
 }

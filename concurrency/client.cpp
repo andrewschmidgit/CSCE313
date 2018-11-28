@@ -203,16 +203,14 @@ int main(int argc, char *argv[])
         BoundedBuffer janeBuffer((b + 3 - 1) / 3);
         BoundedBuffer joeBuffer((b + 3 - 1) / 3);
 
-        vector<pthread_t> workers;
+        pthread_t worker;
+        pthread_create(&worker, nullptr, worker_thread_function, workerArguments);
         for (int i = 0; i < w; i++)
         {
             chan->cwrite("newchannel");
             string s = chan->cread();
             RequestChannel *workerChannel = new RequestChannel(s, RequestChannel::CLIENT_SIDE);
             WorkerArguments *workerArguments = new WorkerArguments(workerChannel, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
-            pthread_t worker;
-            pthread_create(&worker, nullptr, worker_thread_function, workerArguments);
-            workers.push_back(worker);
         }
 
         pthread_t johnStat, janeStat, joeStat;
@@ -241,9 +239,6 @@ int main(int argc, char *argv[])
         }
         if (!output)
             cout << "done." << endl;
-
-        for (auto worker : workers)
-            pthread_join(worker, nullptr);
 
         if(!output)
             cout << "All Workers finished" << endl;
