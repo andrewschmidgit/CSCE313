@@ -53,19 +53,6 @@ struct RequestArguments
 
 void *request_thread_function(void *arg)
 {
-    /*
-		Fill in this function.
-
-		The loop body should require only a single line of code.
-		The loop conditions should be somewhat intuitive.
-
-		In both thread functions, the arg parameter
-		will be used to pass parameters to the function.
-		One of the parameters for the request thread
-		function MUST be the name of the "patient" for whom
-		the data requests are being pushed: you MAY NOT
-		create 3 copies of this function, one for each "patient".
-	 */
     RequestArguments *args = (RequestArguments *)arg;
     for (int i = 0; i < args->RequestCount; i++)
         args->Buffer->push(args->Name);
@@ -151,7 +138,7 @@ int main(int argc, char *argv[])
     int opt = 0;
     bool output = false;
     RequestChannelType type;
-    string typeArg;
+    string typeArg = "UNSET";
 
     while ((opt = getopt(argc, argv, "n:w:b:i:t")) != -1)
     {
@@ -166,132 +153,134 @@ int main(int argc, char *argv[])
         case 'b':
             b = atoi(optarg);
             break;
+        case 'i':
+            typeArg = optarg;
+            if (typeArg[0] == 'f')
+                type = RequestChannelType::FIFO;
+            else if (typeArg[0] == 'q')
+                type = RequestChannelType::MQ;
+            else if (typeArg[0] == 's')
+                type = RequestChannelType::MEMORY;
+            else
+            {
+                cout << "-i requires 'f' for FIFO, 'q' for Message Queue, or 's' for Shared Memory" << endl;
+                exit(1);
+            }
+            break;
         case 't':
             output = true;
             break;
-        case 'i':
-        {
-            typeArg = optarg;
-            switch (typeArg[0])
-            {
-            case 'f':
-                type = RequestChannelType::FIFO;
-                break;
-            case 'q':
-                type = RequestChannelType::MQ;
-                break;
-            case 's':
-                type = RequestChannelType::MEMORY;
-                break;
-            }
-            break;
         }
+    }
+
+    GetRequestChannelProcessor processor(type);
+    int pid = fork();
+    if (pid == 0)
+    {
+        execl("dataserver", "dataserver", typeArg.c_str(), (char *)NULL);
+    }
+    else
+    {
+        if (!output)
+        {
+            cout << "n == " << n << endl;
+            cout << "w == " << w << endl;
+            cout << "b == " << b << endl;
+            cout << "i == " << typeArg << endl;
         }
 
-        GetRequestChannelProcessor processor(type);
-        int pid = fork();
-        if (pid == 0)
+        RequestChannel *chan = processor.Get("control", RequestChannel::CLIENT_SIDE);
+
+        BoundedBuffer request_buffer(b);
+        Histogram hist;
+
+        // Start Timing
+        struct timeval t1, t2;
+
+        gettimeofday(&t1, nullptr);
+
+        //3 threads
+        pthread_t john, jane, joe;
+
+        RequestArguments *johnRequestArgs = new RequestArguments(n, "data John Smith", &request_buffer);
+        RequestArguments *janeRequestArgs = new RequestArguments(n, "data Jane Smith", &request_buffer);
+        RequestArguments *joeRequestArgs = new RequestArguments(n, "data Joe Smith", &request_buffer);
+
+        pthread_create(&john, nullptr, request_thread_function, johnRequestArgs);
+        pthread_create(&jane, nullptr, request_thread_function, janeRequestArgs);
+        pthread_create(&joe, nullptr, request_thread_function, joeRequestArgs);
+
+        BoundedBuffer johnBuffer((b + 3 - 1) / 3);
+        BoundedBuffer janeBuffer((b + 3 - 1) / 3);
+        BoundedBuffer joeBuffer((b + 3 - 1) / 3);
+
+        vector<pthread_t> workers;
+        cout << "Making workers" << endl;
+        for (int i = 0; i < w; i++)
         {
-            execl("dataserver", "dataserver", typeArg.c_str(), (char *)NULL);
+            chan->cwrite("newchannel");
+            string s = chan->cread();
+            RequestChannel *workerChannel = processor.Get(s, RequestChannel::CLIENT_SIDE);
+            WorkerArguments *workerArguments = new WorkerArguments(workerChannel, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
+            pthread_t worker;
+            cout << "Creating worker\n";
+            pthread_create(&worker, nullptr, worker_thread_function, workerArguments);
+            workers.push_back(worker);
         }
-        else
+
+        pthread_t johnStat, janeStat, joeStat;
+        StatArguments *johnStatArgs = new StatArguments(n, "data John Smith", &johnBuffer, &hist);
+        StatArguments *janeStatArgs = new StatArguments(n, "data Jane Smith", &janeBuffer, &hist);
+        StatArguments *joeStatArgs = new StatArguments(n, "data Joe Smith", &joeBuffer, &hist);
+
+        pthread_create(&johnStat, nullptr, stat_thread_function, johnStatArgs);
+        pthread_create(&janeStat, nullptr, stat_thread_function, janeStatArgs);
+        pthread_create(&joeStat, nullptr, stat_thread_function, joeStatArgs);
+
+        // Waiting
+        pthread_join(john, nullptr);
+        pthread_join(jane, nullptr);
+        pthread_join(joe, nullptr);
+
+        if (!output)
+            cout << "Done populating request buffer" << endl;
+
+            
+        // Pushing Quit Requests
+        if (!output)
+            cout << "Pushing quit requests... ";
+        for (int i = 0; i < w; ++i)
+            request_buffer.push("quit");
+
+        if (!output)
+            cout << "done." << endl;
+
+        // Joining on workers
+        for (auto worker : workers)
+            pthread_join(worker, nullptr);
+
+        if (!output)
+            cout << "All Workers finished" << endl;
+
+        pthread_join(johnStat, nullptr);
+        pthread_join(janeStat, nullptr);
+        pthread_join(joeStat, nullptr);
+
+        gettimeofday(&t2, nullptr);
+
+        if (output == true)
         {
-            if (!output)
-            {
-                cout << "n == " << n << endl;
-                cout << "w == " << w << endl;
-                cout << "b == " << b << endl;
-            }
+            double elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;
+            elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;
+            cout << elapsedTime << endl;
+        }
 
-            RequestChannel *chan = processor.Get("control", RequestChannel::CLIENT_SIDE);
-
-            BoundedBuffer request_buffer(b);
-            Histogram hist;
-
-            // Start Timing
-            struct timeval t1, t2;
-
-            gettimeofday(&t1, nullptr);
-
-            //3 threads
-            pthread_t john, jane, joe;
-
-            RequestArguments *johnRequestArgs = new RequestArguments(n, "data John Smith", &request_buffer);
-            RequestArguments *janeRequestArgs = new RequestArguments(n, "data Jane Smith", &request_buffer);
-            RequestArguments *joeRequestArgs = new RequestArguments(n, "data Joe Smith", &request_buffer);
-
-            pthread_create(&john, nullptr, request_thread_function, johnRequestArgs);
-            pthread_create(&jane, nullptr, request_thread_function, janeRequestArgs);
-            pthread_create(&joe, nullptr, request_thread_function, joeRequestArgs);
-
-            BoundedBuffer johnBuffer((b + 3 - 1) / 3);
-            BoundedBuffer janeBuffer((b + 3 - 1) / 3);
-            BoundedBuffer joeBuffer((b + 3 - 1) / 3);
-
-            vector<pthread_t> workers;
-            for (int i = 0; i < w; i++)
-            {
-                chan->cwrite("newchannel");
-                string s = chan->cread();
-                RequestChannel *workerChannel = processor.Get(s, RequestChannel::CLIENT_SIDE);
-                WorkerArguments *workerArguments = new WorkerArguments(workerChannel, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
-                pthread_t worker;
-                pthread_create(&worker, nullptr, worker_thread_function, workerArguments);
-                workers.push_back(worker);
-            }
-
-            pthread_t johnStat, janeStat, joeStat;
-            StatArguments *johnStatArgs = new StatArguments(n, "data John Smith", &johnBuffer, &hist);
-            StatArguments *janeStatArgs = new StatArguments(n, "data Jane Smith", &janeBuffer, &hist);
-            StatArguments *joeStatArgs = new StatArguments(n, "data Joe Smith", &joeBuffer, &hist);
-
-            pthread_create(&johnStat, nullptr, stat_thread_function, johnStatArgs);
-            pthread_create(&janeStat, nullptr, stat_thread_function, janeStatArgs);
-            pthread_create(&joeStat, nullptr, stat_thread_function, joeStatArgs);
-
-            // Waiting
-            pthread_join(john, nullptr);
-            pthread_join(jane, nullptr);
-            pthread_join(joe, nullptr);
-
-            if (!output)
-                cout << "Done populating request buffer" << endl;
-
-            // Pushing Quit Requests
-            if (!output)
-                cout << "Pushing quit requests... ";
-            for (int i = 0; i < w; ++i)
-            {
-                request_buffer.push("quit");
-            }
-            if (!output)
-                cout << "done." << endl;
-
-            for (auto worker : workers)
-                pthread_join(worker, nullptr);
-
-            if (!output)
-                cout << "All Workers finished" << endl;
-            pthread_join(johnStat, nullptr);
-            pthread_join(janeStat, nullptr);
-            pthread_join(joeStat, nullptr);
-
-            gettimeofday(&t2, nullptr);
-
-            if (output == true)
-            {
-                double elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;
-                elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;
-                cout << elapsedTime << endl;
-            }
-
-            chan->cwrite("quit");
-            delete chan;
-            if (!output)
-            {
-                cout << "All Done!!!" << endl;
-                hist.print();
-            }
+        chan->cwrite("quit");
+        delete chan;
+        if (!output)
+        {
+            cout << "All Done!!!" << endl;
+            hist.print();
         }
     }
 }

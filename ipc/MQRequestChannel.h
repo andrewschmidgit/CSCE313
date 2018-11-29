@@ -80,7 +80,7 @@ class MQRequestChannel : public RequestChannel
         return buffer.MessageText;
     }
 
-    int cwrite(string msg)
+    void cwrite(string msg)
     {
         MessageBuffer buffer;
         buffer.MessageType = 1;

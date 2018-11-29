@@ -14,16 +14,14 @@
 
 #include "reqchannel.h"
 
-using namespace std;
-
 class FIFORequestChannel : public RequestChannel
 {
     int wfd;
     int rfd;
 
-    string pipe_name(Mode _mode)
+    std::string pipe_name(Mode _mode)
     {
-        string pname = "fifo_" + my_name;
+        std::string pname = "fifo_" + my_name;
 
         if (my_side == CLIENT_SIDE)
         {
@@ -43,34 +41,52 @@ class FIFORequestChannel : public RequestChannel
         return pname;
     }
 
-    void create_pipe(string _pipe_name)
+    void create_pipe(std::string _pipe_name)
     {
-        mkfifo(_pipe_name.c_str(), 0600) < 0;
+        mkfifo(_pipe_name.c_str(), 0666);
     }
 
-    void open_read_pipe(string _pipe_name)
-    {
-        create_pipe(_pipe_name);
-        rfd = open(_pipe_name.c_str(), O_RDONLY);
-        if (rfd < 0)
-        {
-            perror("");
-            exit(0);
-        }
-    }
-    void open_write_pipe(string _pipe_name)
+    void open_write_pipe(std::string _pipe_name)
     {
         create_pipe(_pipe_name);
 
         wfd = open(_pipe_name.c_str(), O_WRONLY);
+        if (my_side == SERVER_SIDE)
+        {
+            ofstream ouf;
+            ouf.open("fifo.txt", ofstream::app);
+            ouf << " " << wfd << endl;
+        }
+        else
+            cout << " " << wfd << endl;
+
         if (wfd < 0)
         {
             EXITONERROR(_pipe_name);
         }
     }
 
+    void open_read_pipe(std::string _pipe_name)
+    {
+        create_pipe(_pipe_name);
+        rfd = open(_pipe_name.c_str(), O_RDONLY);
+        if (my_side == SERVER_SIDE)
+        {
+            ofstream ouf;
+            ouf.open("fifo.txt", ofstream::app);
+            ouf << " " << rfd << endl;
+        }
+        else
+            cout << " " << rfd << endl;
+        if (rfd < 0)
+        {
+            perror("");
+            exit(0);
+        }
+    }
+
   public:
-    FIFORequestChannel(const string _name, const Side _side) : RequestChannel(_name, _side)
+    FIFORequestChannel(const std::string _name, const Side _side) : RequestChannel(_name, _side)
     {
         if (_side == SERVER_SIDE)
         {
@@ -114,7 +130,7 @@ class FIFORequestChannel : public RequestChannel
         return s;
     }
 
-    int cwrite(string msg)
+    void cwrite(string msg)
     {
         if (msg.size() > MAX_MESSAGE)
         {
@@ -124,6 +140,5 @@ class FIFORequestChannel : public RequestChannel
         { // msg.size() + 1 to include the NULL byte
             EXITONERROR("cwrite");
         }
-        return 0;
     }
 };

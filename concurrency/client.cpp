@@ -1,10 +1,3 @@
-/*
-    Based on original assignment by: Dr. R. Bettati, PhD
-    Department of Computer Science
-    Texas A&M University
-    Date  : 2013/01/31
- */
-
 #include <iostream>
 #include <fstream>
 #include <cstring>
@@ -67,119 +60,97 @@ void *request_thread_function(void *arg)
         args->Buffer->push(args->Name);
 }
 
-struct WorkerArguments
+struct RequestChannelPair
 {
     RequestChannel *Channel;
-    BoundedBuffer *Buffer;
-
-    BoundedBuffer *JohnBuffer;
-    BoundedBuffer *JaneBuffer;
-    BoundedBuffer *JoeBuffer;
-    WorkerArguments(RequestChannel *channel, BoundedBuffer *buffer, BoundedBuffer *johnBuffer, BoundedBuffer *janeBuffer, BoundedBuffer *joeBuffer) : Channel(channel), Buffer(buffer), JohnBuffer(johnBuffer), JaneBuffer(janeBuffer), JoeBuffer(joeBuffer) {}
+    string Request;
+    RequestChannelPair(RequestChannel *channel, string request) : Channel(channel), Request(request) {}
 };
-
-void *worker_thread_function(void *arg)
-{
-    WorkerArguments *args = (WorkerArguments *)arg;
-    while (true)
-    {
-        string request = args->Buffer->pop();
-        args->Channel->cwrite(request);
-
-        if (request == "quit")
-        {
-            delete args->Channel;
-            break;
-        }
-        else
-        {
-            string response = args->Channel->cread();
-            if (request.find("John") != string::npos)
-                args->JohnBuffer->push(response);
-            else if (request.find("Jane") != string::npos)
-                args->JaneBuffer->push(response);
-            else if (request.find("Joe") != string::npos)
-                args->JoeBuffer->push(response);
-        }
-    }
-}
 
 struct EventArguments
 {
-    int InitialRequestCount;
-    int RequestLimit;
-    RequestChannel *Control;
-
+    int N;
+    int W;
+    RequestChannel *Chan;
     BoundedBuffer *Buffer;
     BoundedBuffer *JohnBuffer;
     BoundedBuffer *JaneBuffer;
     BoundedBuffer *JoeBuffer;
-    EventArguments(RequestChannel *control, int initialRequestCount, int requestLimit, BoundedBuffer *buffer, BoundedBuffer *john, BoundedBuffer *jane, BoundedBuffer *joe) : Control(control), InitialRequestCount(initialRequestCount), RequestLimit(requestLimit), JohnBuffer(john), JaneBuffer(jane), JoeBuffer(joe) {}
+
+    EventArguments(int n, int w, RequestChannel *chan, BoundedBuffer *buffer, BoundedBuffer *john, BoundedBuffer *jane, BoundedBuffer *joe)
+        : N(n), W(w), Chan(chan), Buffer(buffer), JohnBuffer(john), JaneBuffer(jane), JoeBuffer(joe) {}
 };
 
-struct RequestChannelPair {
-    RequestChannel *Channel;
-    string Request;
-    RequestChannelPair(RequestChannel *channel): Channel(channel) {}
-};
-
-int getMaxFileDescriptor(vector<RequestChannelPair> pairs) {
+int getMaxFileDescriptor(vector<RequestChannelPair> &pairs)
+{
     int ret = 0;
-    for(auto pair: pairs)
+    for (auto pair : pairs)
         ret = max(ret, pair.Channel->read_fd());
     return ret;
 }
 
-
-void *EventThreadFunction(void *arg)
+bool processChannels(EventArguments *args, fd_set fds, vector<RequestChannelPair> pairs, int &setCounter, int& writeCounter)
 {
-    EventArguments *args = (EventArguments *)arg;
+    int readyFds = select(getMaxFileDescriptor(pairs) + 1, &fds, nullptr, nullptr, nullptr);
+    int i;
+    if(readyFds > 0)
+        for (i = 0; i < pairs.size(); i++)
+        {
+            cout << "i = " << i << "set counter = " << setCounter << endl;
+            RequestChannelPair pair = pairs[i];
+            if (FD_ISSET(pair.Channel->read_fd(), &fds))
+            {
+                string response = pair.Channel->cread();
+                if (pair.Request.find("John") != string::npos)
+                    args->JohnBuffer->push(response);
+                else if (pair.Request.find("Jane") != string::npos)
+                    args->JaneBuffer->push(response);
+                else if (pair.Request.find("Joe") != string::npos)
+                    args->JoeBuffer->push(response);
 
-    vector<RequestChannelPair> requestChannelPairs;
-
-    // Setting up each request channel
-    int initial = min(args->InitialRequestCount, args->RequestLimit);
-    for (int i = 0; i < initial; i++)
-    {
-        args->Control->cwrite("newchannel");
-        string s = args->Control->cread();
-        RequestChannelPair pair(new RequestChannel(s, RequestChannel::CLIENT_SIDE));
-        requestChannelPairs.push_back(pair);
-        
-        cout << "Got here\n";
-
-        pair.Request = args->Buffer->pop();
-        pair.Channel->cwrite(pair.Request);
-    }
-
-    bool isQuittingTime = false;
-    while(isQuittingTime == false) {
-        fd_set fds;
-        FD_ZERO(&fds);
-        for(auto pair: requestChannelPairs)
-            FD_SET(pair.Channel->read_fd(), &fds);
-
-        int readyFds = select(getMaxFileDescriptor(requestChannelPairs), &fds, nullptr, nullptr, nullptr);
-
-        if(readyFds > 0) {
-            for(auto pair: requestChannelPairs) {
-                if(FD_ISSET(pair.Channel->read_fd(), &fds)) {
-                    string response = pair.Channel->cread();
-                    if (pair.Request.find("John") != string::npos)
-                        args->JohnBuffer->push(response);
-                    else if (pair.Request.find("Jane") != string::npos)
-                        args->JaneBuffer->push(response);
-                    else if (pair.Request.find("Joe") != string::npos)
-                        args->JoeBuffer->push(response);
-                    string request = args->Buffer->pop();
-                    if(request == "quit") {
-                        isQuittingTime = true;
-                        break;
-                    }
+                if(writeCounter < 3 * args->N) {
+                    pair.Request = args->Buffer->pop();
                     pair.Channel->cwrite(pair.Request);
                 }
+                setCounter++;
+                cout << "Set counter incremented to: " << setCounter << endl;
             }
         }
+    return 3 * args->N == setCounter;
+}
+
+void *event_thread_function(void *arg)
+{
+    EventArguments *args = (EventArguments *)arg;
+    vector<RequestChannelPair> pairs;
+
+    // Priming the pump
+    for (int i = 0; i < min(args->W, 3 * args->N); i++)
+    {
+        args->Chan->cwrite("newchannel");
+        string s = args->Chan->cread();
+        RequestChannelPair pair(new RequestChannel(s, RequestChannel::CLIENT_SIDE), args->Buffer->pop());
+        pair.Channel->cwrite(pair.Request);
+        pairs.push_back(pair);
+    }
+    cout << "Done priming the pump" << endl;
+
+    bool isQuittingTime = false;
+    int setCounter = 0, writeCounter = 0;
+    while (isQuittingTime == false)
+    {
+        fd_set fds;
+        FD_ZERO(&fds);
+        for (auto pair : pairs)
+            FD_SET(pair.Channel->read_fd(), &fds);
+
+        isQuittingTime = processChannels(args, fds, pairs, setCounter, writeCounter);
+    }
+
+    for (auto pair : pairs)
+    {
+        pair.Channel->cwrite("quit");
+        delete pair.Channel;
     }
 }
 
@@ -210,6 +181,7 @@ void *stat_thread_function(void *arg)
     for (int i = 0; i < args->Count; i++)
     {
         string response = args->Buffer->pop();
+        cout << args->Name << " response: " << response << endl;
         args->Hist->update(args->Name, response);
     }
 }
@@ -282,9 +254,9 @@ int main(int argc, char *argv[])
         BoundedBuffer joeBuffer((b + 3 - 1) / 3);
 
         // Event Handler stuff
-        EventArguments *eventArgs = new EventArguments(chan, w, 3 * n, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
+        EventArguments *eventArgs = new EventArguments(n, w, chan, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
         pthread_t eventHandler;
-        pthread_create(&eventHandler, nullptr, EventThreadFunction, eventArgs);
+        pthread_create(&eventHandler, nullptr, event_thread_function, eventArgs);
 
         pthread_t johnStat, janeStat, joeStat;
         StatArguments *johnStatArgs = new StatArguments(n, "data John Smith", &johnBuffer, &hist);
@@ -306,6 +278,7 @@ int main(int argc, char *argv[])
         // Pushing Quit Requests
         if (!output)
             cout << "Pushing quit requests... ";
+        //for(int i = 0; i < initial; i++)
         request_buffer.push("quit");
         if (!output)
             cout << "done." << endl;
@@ -330,7 +303,8 @@ int main(int argc, char *argv[])
 
         chan->cwrite("quit");
         delete chan;
-        if (!output)
+        
+        if (output == false)
         {
             cout << "All Done!!!" << endl;
             hist.print();
