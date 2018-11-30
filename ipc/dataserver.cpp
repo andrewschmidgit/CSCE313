@@ -72,6 +72,7 @@ void *handle_process_loop(void *loopInfo)
         string request = info->Channel->cread();
         if (request.compare("quit") == 0)
         {
+            delete info->Channel;
             break; // break out of the loop;
         }
         process_request(info, request);

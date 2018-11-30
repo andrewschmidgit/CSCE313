@@ -51,14 +51,6 @@ class FIFORequestChannel : public RequestChannel
         create_pipe(_pipe_name);
 
         wfd = open(_pipe_name.c_str(), O_WRONLY);
-        if (my_side == SERVER_SIDE)
-        {
-            ofstream ouf;
-            ouf.open("fifo.txt", ofstream::app);
-            ouf << " " << wfd << endl;
-        }
-        else
-            cout << " " << wfd << endl;
 
         if (wfd < 0)
         {
@@ -70,14 +62,6 @@ class FIFORequestChannel : public RequestChannel
     {
         create_pipe(_pipe_name);
         rfd = open(_pipe_name.c_str(), O_RDONLY);
-        if (my_side == SERVER_SIDE)
-        {
-            ofstream ouf;
-            ouf.open("fifo.txt", ofstream::app);
-            ouf << " " << rfd << endl;
-        }
-        else
-            cout << " " << rfd << endl;
         if (rfd < 0)
         {
             perror("");

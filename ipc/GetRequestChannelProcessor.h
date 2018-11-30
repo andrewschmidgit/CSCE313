@@ -7,6 +7,7 @@
 #include "reqchannel.h"
 #include "FIFORequestChannel.h"
 #include "MQRequestChannel.h"
+#include "SMRequestChannel.h"
 
 using namespace std;
 
@@ -25,6 +26,8 @@ class GetRequestChannelProcessor
             return new FIFORequestChannel(name, side);
         case RequestChannelType::MQ:
             return new MQRequestChannel(name, side);
+        case RequestChannelType::MEMORY:
+            return new SMRequestChannel(name, side);
         }
         return nullptr;
     }

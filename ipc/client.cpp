@@ -212,7 +212,6 @@ int main(int argc, char *argv[])
             RequestChannel *workerChannel = processor.Get(s, RequestChannel::CLIENT_SIDE);
             WorkerArguments *workerArguments = new WorkerArguments(workerChannel, &request_buffer, &johnBuffer, &janeBuffer, &joeBuffer);
             pthread_t worker;
-            cout << "Creating worker\n";
             pthread_create(&worker, nullptr, worker_thread_function, workerArguments);
             workers.push_back(worker);
         }

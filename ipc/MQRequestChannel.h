@@ -21,6 +21,8 @@ class MQRequestChannel : public RequestChannel
     int readMessageQueueId;
     int writeMessageQueueId;
 
+    string filename;
+
     string getFileName(Mode mode)
     {
         string filename = "mq_" + my_name;
@@ -46,8 +48,9 @@ class MQRequestChannel : public RequestChannel
   public:
     MQRequestChannel(const string _name, const Side _side) : RequestChannel(_name, _side)
     {
-        string filename = "mq_" + my_name;
+        filename = "mq_" + my_name;
         FILE *file = fopen(filename.c_str(), "w");
+        fclose(file);
 
         key_t readKey;
         key_t writeKey;
@@ -65,9 +68,6 @@ class MQRequestChannel : public RequestChannel
 
         readMessageQueueId = msgget(readKey, 0666 | IPC_CREAT);
         writeMessageQueueId = msgget(writeKey, 0666 | IPC_CREAT);
-
-        fclose(file);
-        remove(filename.c_str());
     }
 
     ~MQRequestChannel()
@@ -77,12 +77,13 @@ class MQRequestChannel : public RequestChannel
             msgctl(readMessageQueueId, IPC_RMID, nullptr);
             msgctl(writeMessageQueueId, IPC_RMID, nullptr);
         }
+        remove(filename.c_str());
     }
 
     string cread()
     {
         MessageBuffer buffer;
-        msgrcv(readMessageQueueId, &buffer, sizeof(MessageBuffer), 1, 0);
+        msgrcv(readMessageQueueId, &buffer, sizeof(buffer.MessageText), 0, 0);
         return buffer.MessageText;
     }
 
@@ -91,6 +92,6 @@ class MQRequestChannel : public RequestChannel
         MessageBuffer buffer;
         buffer.MessageType = 1;
         strcpy(buffer.MessageText, msg.c_str());
-        msgsnd(writeMessageQueueId, &buffer, sizeof(MessageBuffer), 0);
+        msgsnd(writeMessageQueueId, &buffer, msg.length() + 1, 0);
     }
 };
