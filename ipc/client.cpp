@@ -79,7 +79,6 @@ void *worker_thread_function(void *arg)
 
         if (request == "quit")
         {
-            cout << "Quitting" << endl;
             delete args->Channel;
             break;
         }
@@ -110,15 +109,6 @@ struct StatArguments
 
 void *stat_thread_function(void *arg)
 {
-    /*
-		Fill in this function. 
-
-		There should 1 such thread for each person. Each stat thread 
-        must consume from the respective statistics buffer and update
-        the histogram. Since a thread only works on its own part of 
-        histogram, does the Histogram class need to be thread-safe????
-
-     */
     StatArguments *args = (StatArguments *)arg;
     for (int i = 0; i < args->Count; i++)
     {
@@ -132,9 +122,9 @@ void *stat_thread_function(void *arg)
 /*--------------------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-    int n = 100;   //default number of requests per "patient"
-    int w = 10;    //default number of worker threads
-    int b = 3 * n; // default capacity of the request buffer, you should change this default
+    int n = 100;
+    int w = 10;
+    int b = 3 * n;
     int opt = 0;
     bool output = false;
     RequestChannelType type;
@@ -148,7 +138,7 @@ int main(int argc, char *argv[])
             n = atoi(optarg);
             break;
         case 'w':
-            w = atoi(optarg); //This won't do a whole lot until you fill in the worker thread function
+            w = atoi(optarg);
             break;
         case 'b':
             b = atoi(optarg);
@@ -215,7 +205,6 @@ int main(int argc, char *argv[])
         BoundedBuffer joeBuffer((b + 3 - 1) / 3);
 
         vector<pthread_t> workers;
-        cout << "Making workers" << endl;
         for (int i = 0; i < w; i++)
         {
             chan->cwrite("newchannel");
@@ -249,6 +238,7 @@ int main(int argc, char *argv[])
         // Pushing Quit Requests
         if (!output)
             cout << "Pushing quit requests... ";
+
         for (int i = 0; i < w; ++i)
             request_buffer.push("quit");
 
@@ -274,6 +264,8 @@ int main(int argc, char *argv[])
             elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;
             cout << elapsedTime << endl;
         }
+
+        execl("ipcrm", nullptr);
 
         chan->cwrite("quit");
         delete chan;

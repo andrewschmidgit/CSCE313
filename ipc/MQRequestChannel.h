@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <stdio.h>
 #include <string.h>
 #include <sys/msg.h>
@@ -46,16 +47,18 @@ class MQRequestChannel : public RequestChannel
     MQRequestChannel(const string _name, const Side _side) : RequestChannel(_name, _side)
     {
         string filename = "mq_" + my_name;
-        FILE* file = fopen(filename.c_str(), "w");
-        
+        FILE *file = fopen(filename.c_str(), "w");
+
         key_t readKey;
         key_t writeKey;
 
-        if(my_side == SERVER_SIDE) {
+        if (my_side == SERVER_SIDE)
+        {
             readKey = ftok(filename.c_str(), 1);
             writeKey = ftok(filename.c_str(), 2);
         }
-        else {
+        else
+        {
             readKey = ftok(filename.c_str(), 2);
             writeKey = ftok(filename.c_str(), 1);
         }
@@ -69,10 +72,13 @@ class MQRequestChannel : public RequestChannel
 
     ~MQRequestChannel()
     {
-        msgctl(readMessageQueueId, IPC_RMID, nullptr);
-        msgctl(writeMessageQueueId, IPC_RMID, nullptr);
+        if (my_side == SERVER_SIDE)
+        {
+            msgctl(readMessageQueueId, IPC_RMID, nullptr);
+            msgctl(writeMessageQueueId, IPC_RMID, nullptr);
+        }
     }
-    
+
     string cread()
     {
         MessageBuffer buffer;
